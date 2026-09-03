@@ -10,6 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:hostinger": "prisma migrate deploy && next build",
+    "build:hostinger:bootstrap": "prisma migrate deploy && prisma db seed && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",

@@ -29,7 +29,7 @@ async function ensureUser(input: {
       isActive: true,
     },
   });
-  console.log(`Created ${input.role} user: ${input.email} / ${SEED_PASSWORD}`);
+  console.log(`Created ${input.role} user: ${input.email}`);
   return user;
 }
 
@@ -219,7 +219,7 @@ async function main() {
     console.log("Created hospital account: hospital@grayjaycare.ca");
   }
 
-  console.log(`\nAll seeded staff/test accounts use the password: ${SEED_PASSWORD}`);
+  console.log("\nSeeded staff and test accounts are ready.");
 }
 
 main()
