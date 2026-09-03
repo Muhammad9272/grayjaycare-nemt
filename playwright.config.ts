@@ -13,7 +13,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : "line",
-  timeout: 45_000,
+  timeout: usesExternalServer ? 180_000 : 45_000,
   expect: { timeout: 10_000 },
   use: {
     ...devices["Desktop Chrome"],
