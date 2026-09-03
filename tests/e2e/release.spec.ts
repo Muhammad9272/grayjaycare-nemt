@@ -163,7 +163,7 @@ async function cleanupFixtures() {
     await tx.hospitalAccount.deleteMany({ where: { id: { in: hospitalIds } } });
     await tx.user.deleteMany({ where: { id: { in: userIds } } });
     await tx.vehicle.deleteMany({ where: { id: { in: vehicleIds } } });
-  });
+  }, { timeout: 30_000 });
 }
 
 async function login(page: Page, loginEmail: string, expectedPath: RegExp | string) {
@@ -424,7 +424,7 @@ test("admin fleet, staff, account controls, pricing form, and driver verificatio
   expect(staffResponse.status()).toBe(200);
   const staffBody = await staffResponse.json();
   fixture.staff.id = staffBody.userId;
-  expect(staffBody.emailSent).toBe(false);
+  expect(staffBody.emailSent).toBe(process.env.EXPECT_OUTBOUND_EMAIL === "true");
 
   const vehicleResponse = await postJson(api, "/api/admin/vehicles", {
     plateNumber: fixture.apiVehicle.plate.toLowerCase(),

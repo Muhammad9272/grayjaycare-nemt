@@ -2,7 +2,9 @@ import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 const port = 3105;
-const baseURL = `http://127.0.0.1:${port}`;
+const localBaseURL = `http://127.0.0.1:${port}`;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || localBaseURL;
+const usesExternalServer = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 const localChrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 export default defineConfig({
@@ -21,9 +23,9 @@ export default defineConfig({
     video: "retain-on-failure",
     launchOptions: existsSync(localChrome) ? { executablePath: localChrome } : undefined,
   },
-  webServer: {
+  webServer: usesExternalServer ? undefined : {
     command: `npm run start -- -p ${port}`,
-    url: `${baseURL}/api/health`,
+    url: `${localBaseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
