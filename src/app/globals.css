@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffdfd;
+  --foreground: #302639;
+  --muted: #f9f4fc;
+  --muted-foreground: #71687a;
+  --border: #eadff1;
+  --card: #ffffff;
+
+  --primary: #922bea;
+  --primary-hover: #7c1ed2;
+  --primary-foreground: #ffffff;
+  --accent: #ff5b38;
+  --accent-foreground: #ffffff;
+
+  --success-bg: #e7f6ee;
+  --success-fg: #146c43;
+  --warning-bg: #fef3e2;
+  --warning-fg: #92620a;
+  --info-bg: #e8f1fb;
+  --info-fg: #1c5ea8;
+  --danger-bg: #fdecec;
+  --danger-fg: #b3261e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: var(--font-gjc-body);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-gjc-display), Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition-duration: 180ms;
+}
+
+::selection {
+  background: #dfb6ff;
+  color: #34134e;
+}

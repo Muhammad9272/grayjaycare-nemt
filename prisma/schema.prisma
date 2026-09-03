@@ -1,0 +1,508 @@
+// Gray Jay Care — NEMT platform database schema
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  DISPATCHER
+  DRIVER
+  CUSTOMER
+  HOSPITAL
+  ACCOUNTANT
+}
+
+enum TripStatus {
+  PENDING // just submitted by customer / phone, awaiting dispatcher review
+  QUOTED // pricing confirmed, awaiting customer/dispatcher confirmation
+  CONFIRMED // booking confirmed, not yet assigned to a driver
+  ASSIGNED // driver assigned by dispatcher
+  EN_ROUTE // driver en route to pickup
+  ARRIVED // driver arrived at pickup
+  IN_PROGRESS // passenger picked up, trip underway
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  WEBSITE
+  PHONE
+  HOSPITAL_PORTAL
+  ADMIN
+}
+
+enum MobilityType {
+  AMBULATORY
+  WHEELCHAIR
+  STRETCHER
+}
+
+enum PickupTimePreference {
+  SPECIFIC
+  ASAP
+  FLEXIBLE
+}
+
+enum ReturnTripType {
+  ONE_WAY
+  SCHEDULED_RETURN
+  WAIT_AND_RETURN
+  CALL_FOR_RETURN
+}
+
+enum BookingPaymentPreference {
+  CASH
+  CARD
+  E_TRANSFER
+  DIRECT_DEPOSIT
+  INVOICE
+  OTHER
+}
+
+enum VehicleType {
+  SEDAN
+  MINIVAN
+  WHEELCHAIR_VAN
+  STRETCHER_VAN
+}
+
+enum VehicleStatus {
+  ACTIVE
+  MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum DriverVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  VOID
+}
+
+enum PaymentMethod {
+  STRIPE_CARD
+  E_TRANSFER
+  CASH
+  INVOICE_ON_ACCOUNT
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// ---------------------------------------------------------------------------
+// Identity & access
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String
+  role          Role
+  firstName     String
+  lastName      String
+  phone         String?
+  isActive      Boolean   @default(true)
+  mfaEnabled    Boolean   @default(false)
+  mfaSecret     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  driverProfile   Driver?
+  customerProfile Customer?
+  hospitalProfile HospitalAccount? @relation("HospitalUsers")
+
+  bookedTrips     Trip[]     @relation("BookedByUser")
+  dispatchedTrips Trip[]     @relation("DispatchedByUser")
+  auditLogs       AuditLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Customer {
+  id             String           @id @default(cuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospitalId     String?
+  hospital       HospitalAccount? @relation(fields: [hospitalId], references: [id])
+  defaultAddress String?
+  notes          String?          @db.Text
+  createdAt      DateTime         @default(now())
+
+  trips Trip[] @relation("CustomerTrips")
+
+  @@map("customers")
+}
+
+model HospitalAccount {
+  id           String   @id @default(cuid())
+  name         String
+  billingEmail String
+  address      String?
+  createdAt    DateTime @default(now())
+
+  primaryContactId String? @unique
+  primaryContact   User?   @relation("HospitalUsers", fields: [primaryContactId], references: [id])
+
+  customers Customer[]
+  trips     Trip[]     @relation("HospitalTrips")
+
+  @@map("hospital_accounts")
+}
+
+model Driver {
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber      String
+  licenseExpiry      DateTime
+  verificationStatus DriverVerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedAt         DateTime?
+  isOnDuty           Boolean                  @default(false)
+  signatureUrl       String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  assignedVehicleId String?
+  assignedVehicle   Vehicle? @relation(fields: [assignedVehicleId], references: [id])
+
+  trips       Trip[]
+  inspections VehicleInspection[]
+  mileageLogs MileageLog[]
+  fuelLogs    FuelLog[]
+
+  @@map("drivers")
+}
+
+// ---------------------------------------------------------------------------
+// Fleet
+// ---------------------------------------------------------------------------
+
+model Vehicle {
+  id          String        @id @default(cuid())
+  plateNumber String        @unique
+  make        String
+  model       String
+  year        Int
+  type        VehicleType
+  capacity    Int
+  status      VehicleStatus @default(ACTIVE)
+  odometerKm  Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  drivers     Driver[]
+  trips       Trip[]
+  inspections VehicleInspection[]
+  maintenance MaintenanceRecord[]
+  mileageLogs MileageLog[]
+  fuelLogs    FuelLog[]
+
+  @@map("vehicles")
+}
+
+model VehicleInspection {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId    String
+  driver      Driver   @relation(fields: [driverId], references: [id])
+  performedAt DateTime @default(now())
+  passed      Boolean
+  notes       String?  @db.Text
+  odometerKm  Int
+
+  @@map("vehicle_inspections")
+}
+
+model MaintenanceRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  description String
+  cost        Decimal  @db.Decimal(10, 2)
+  performedAt DateTime
+  odometerKm  Int
+
+  @@map("maintenance_records")
+}
+
+model MileageLog {
+  id         String   @id @default(cuid())
+  vehicleId  String
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId   String
+  driver     Driver   @relation(fields: [driverId], references: [id])
+  tripId     String?  @unique
+  trip       Trip?    @relation(fields: [tripId], references: [id])
+  startKm    Int
+  endKm      Int
+  recordedAt DateTime @default(now())
+
+  @@map("mileage_logs")
+}
+
+model FuelLog {
+  id         String   @id @default(cuid())
+  vehicleId  String
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId   String
+  driver     Driver   @relation(fields: [driverId], references: [id])
+  litres     Decimal  @db.Decimal(6, 2)
+  cost       Decimal  @db.Decimal(10, 2)
+  odometerKm Int
+  recordedAt DateTime @default(now())
+
+  @@map("fuel_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Booking / dispatch
+// ---------------------------------------------------------------------------
+
+model Trip {
+  id            String @id @default(cuid())
+  referenceCode String @unique
+
+  source BookingSource @default(WEBSITE)
+  status TripStatus    @default(PENDING)
+
+  customerId String?
+  customer   Customer? @relation("CustomerTrips", fields: [customerId], references: [id])
+
+  guestName             String? // patient/passenger name
+  guestEmail            String?
+  guestPhone            String?
+  contactName           String? // requestor/contact when different from patient
+  contactPhoneExtension String?
+  medicalRecordNumber   String?
+
+  hospitalId String?
+  hospital   HospitalAccount? @relation("HospitalTrips", fields: [hospitalId], references: [id])
+
+  bookedById String?
+  bookedBy   User?   @relation("BookedByUser", fields: [bookedById], references: [id])
+
+  pickupAddress     String
+  pickupLat         Float?
+  pickupLng         Float?
+  pickupDepartment  String?
+  pickupRoom        String?
+  dropoffAddress    String
+  dropoffLat        Float?
+  dropoffLng        Float?
+  dropoffDepartment String?
+  dropoffRoom       String?
+
+  scheduledAt          DateTime
+  pickupTimePreference PickupTimePreference @default(SPECIFIC)
+  returnTripType       ReturnTripType       @default(ONE_WAY)
+  isRecurring          Boolean              @default(false)
+  recurrenceRule       String? // e.g. RRULE string for recurring trips
+
+  mobilityType              MobilityType              @default(AMBULATORY)
+  passengerWeightKg         Int?
+  isBariatric               Boolean                   @default(false)
+  isOutOfCity               Boolean                   @default(false) // false = within London, ON; true = outside London
+  requiresOxygen            Boolean                   @default(false)
+  requiresIsolation         Boolean                   @default(false)
+  hasDnr                    Boolean                   @default(false)
+  escortCount               Int                       @default(0)
+  paymentPreference         BookingPaymentPreference?
+  medicalDocumentsAvailable Boolean                   @default(false)
+  extraAttendant            Boolean                   @default(false)
+  extraAttendantHours       Decimal?                  @db.Decimal(5, 2)
+  estimatedWaitMinutes      Int                       @default(0)
+  notes                     String?                   @db.Text
+
+  roundTripGroupId String? // shared by an outbound + return trip booked together
+  isReturnLeg      Boolean @default(false) // the leg the round-trip discount applies to
+
+  distanceKm         Decimal? @db.Decimal(8, 2)
+  estimatedFare      Decimal? @db.Decimal(10, 2)
+  finalFare          Decimal? @db.Decimal(10, 2)
+  fareOverrideById   String?
+  fareOverrideReason String?  @db.Text
+
+  driverId  String?
+  driver    Driver?  @relation(fields: [driverId], references: [id])
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  dispatchedById String?
+  dispatchedBy   User?     @relation("DispatchedByUser", fields: [dispatchedById], references: [id])
+  assignedAt     DateTime?
+
+  cancelledAt        DateTime?
+  cancellationReason String?
+
+  signatureUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoice      Invoice?
+  mileageLog   MileageLog?
+  statusEvents TripStatusEvent[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([driverId])
+  @@map("trips")
+}
+
+model TripStatusEvent {
+  id        String     @id @default(cuid())
+  tripId    String
+  trip      Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  status    TripStatus
+  note      String?
+  createdAt DateTime   @default(now())
+
+  @@map("trip_status_events")
+}
+
+// ---------------------------------------------------------------------------
+// Pricing
+// ---------------------------------------------------------------------------
+
+model PricingRule {
+  id       String  @id @default(cuid())
+  name     String  @default("Default")
+  isActive Boolean @default(true)
+
+  // Wheelchair services (also used for ambulatory trips)
+  wheelchairInCityBase           Decimal @db.Decimal(10, 2)
+  wheelchairInCityPerKm          Decimal @db.Decimal(10, 2)
+  wheelchairOutCityBase          Decimal @db.Decimal(10, 2)
+  wheelchairOutCityPerKmUnder100 Decimal @db.Decimal(10, 2)
+  wheelchairOutCityPerKmOver100  Decimal @db.Decimal(10, 2)
+
+  // Stretcher services
+  stretcherInCityBase           Decimal @db.Decimal(10, 2)
+  stretcherInCityPerKm          Decimal @db.Decimal(10, 2)
+  stretcherOutCityBase          Decimal @db.Decimal(10, 2)
+  stretcherOutCityPerKmUnder100 Decimal @db.Decimal(10, 2)
+  stretcherOutCityPerKmOver100  Decimal @db.Decimal(10, 2)
+
+  // Bariatric patient services (adds on top of wheelchair/stretcher base; overrides per-km rate)
+  bariatricAdditionalCharge Decimal @db.Decimal(10, 2)
+  bariatricPerKm            Decimal @db.Decimal(10, 2)
+
+  // Add-ons
+  weekendNightHolidayFlat Decimal @db.Decimal(10, 2)
+  extraAttendantPerHour   Decimal @db.Decimal(10, 2)
+  oxygenFlat              Decimal @db.Decimal(10, 2)
+  wheelchairWaitPerHour   Decimal @db.Decimal(10, 2)
+  stretcherWaitPerHour    Decimal @db.Decimal(10, 2)
+
+  roundTripDiscountPct    Decimal @default(0) @db.Decimal(5, 2)
+  lateCancellationFee     Decimal @db.Decimal(10, 2)
+  cancellationWindowHours Int     @default(3)
+
+  taxRatePct     Decimal @default(0) @db.Decimal(5, 2)
+  nightStartHour Int     @default(21)
+  nightEndHour   Int     @default(6)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pricing_rules")
+}
+
+model Discount {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  description String?
+  percentOff  Decimal?  @db.Decimal(5, 2)
+  amountOff   Decimal?  @db.Decimal(10, 2)
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+
+  @@map("discounts")
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  tripId         String        @unique
+  trip           Trip          @relation(fields: [tripId], references: [id])
+  status         InvoiceStatus @default(DRAFT)
+  subtotal       Decimal       @db.Decimal(10, 2)
+  taxAmount      Decimal       @db.Decimal(10, 2)
+  discountAmount Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+  dueDate        DateTime?
+  pdfUrl         String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  payments Payment[]
+
+  @@map("invoices")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  invoiceId             String
+  invoice               Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  method                PaymentMethod
+  status                PaymentStatus @default(PENDING)
+  amount                Decimal       @db.Decimal(10, 2)
+  stripePaymentIntentId String?
+  eTransferReference    String?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// Security / audit
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

@@ -1,0 +1,59 @@
+{
+  "name": "greyjaycare-nemt",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0 <25"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:hostinger": "prisma migrate deploy && next build",
+    "start": "next start",
+    "postinstall": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "tsx --test tests/unit/**/*.test.ts",
+    "test:e2e": "NEXT_DIST_DIR=.next-e2e npm run build && NEXT_DIST_DIR=.next-e2e playwright test",
+    "test:e2e:headed": "NEXT_DIST_DIR=.next-e2e npm run build && NEXT_DIST_DIR=.next-e2e playwright test --headed",
+    "test": "npm run test:unit && npm run test:e2e",
+    "check:env": "tsx scripts/check-env.ts",
+    "check": "npm run check:env && npx prisma validate && npm run lint && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "bcryptjs": "^3.0.3",
+    "next": "16.3.0",
+    "next-auth": "^5.0.0-beta.32",
+    "nodemailer": "9.0.6",
+    "prisma": "^7.9.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "fast-uri": "3.1.6",
+    "mariadb": "3.5.3",
+    "mysql2": "3.24.3",
+    "nodemailer": "9.0.6"
+  }
+}
