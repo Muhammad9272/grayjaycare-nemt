@@ -150,7 +150,7 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
               {trip.guestPhone && <p className="text-sm text-muted-foreground">{trip.guestPhone}{trip.contactPhoneExtension ? ` ext. ${trip.contactPhoneExtension}` : ""}</p>}
               {trip.contactName && <p className="text-xs text-muted-foreground">Contact: {trip.contactName}</p>}
               <p className="mt-1 text-xs text-muted-foreground">
-                {trip.dispatchedByName ? `Handled by ${trip.dispatchedByName}` : "Awaiting dispatcher assignment"}
+                {trip.dispatchedByName ? `Assigned by ${trip.dispatchedByName}` : "Awaiting dispatcher assignment"}
               </p>
             </div>
             <div className="text-right text-sm text-muted-foreground">

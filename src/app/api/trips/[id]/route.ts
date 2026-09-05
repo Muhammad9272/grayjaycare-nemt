@@ -177,7 +177,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (nextStatus !== trip.status) data.status = nextStatus;
   if (nextStatus === "ASSIGNED" && trip.status !== "ASSIGNED") data.assignedAt = new Date();
   if (nextStatus === "CONFIRMED" && trip.status === "ASSIGNED") data.assignedAt = null;
-  if (isDispatch) data.dispatchedById = session.user.id;
+  if (isDispatch && assignmentChanged) data.dispatchedById = session.user.id;
 
   let pricingRule: Awaited<ReturnType<typeof getActivePricingRule>> | null = null;
   if (nextStatus === "CANCELLED" || nextStatus === "NO_SHOW" || nextStatus === "COMPLETED") {

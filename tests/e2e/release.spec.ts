@@ -506,7 +506,7 @@ test("dispatch, assignment guards, driver lifecycle, logs, invoicing, and report
   await tripCard.getByLabel(`Vehicle for ${fixture.workflowTrip.referenceCode}`).selectOption(fixture.vehicle.id);
   await tripCard.getByRole("button", { name: "Assign trip" }).click();
   await expect(tripCard.getByText("ASSIGNED", { exact: true })).toBeVisible();
-  await expect(tripCard.getByText("Handled by Release Dispatcher", { exact: true })).toBeVisible();
+  await expect(tripCard.getByText("Assigned by Release Dispatcher", { exact: true })).toBeVisible();
 
   const storedAssignment = await prisma.trip.findUniqueOrThrow({ where: { id: fixture.workflowTrip.id } });
   expect(storedAssignment.source).toBe("PHONE");
