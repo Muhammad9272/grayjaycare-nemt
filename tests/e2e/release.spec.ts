@@ -410,6 +410,37 @@ test("a public booking creates an account and signs the passenger directly into 
   expect(created.medicalDocumentsAvailable).toBe(true);
 });
 
+test("public, dispatcher, and hospital entry points use the same complete booking flow", async ({ page, browser }) => {
+  async function expectCompleteForm(target: Page, channelLabel?: string) {
+    await expect(target.getByRole("heading", { level: 1, name: "Book a safe, caring ride" })).toBeVisible();
+    const sections = await target.locator("form h2").allTextContents();
+    expect(sections.slice(0, 3)).toEqual(["Contact information", "Trip details", "Patient information"]);
+    await expect(target.getByText("Live estimate", { exact: true })).toBeVisible();
+    await expect(target.getByText("Your trip fare", { exact: true })).toBeVisible();
+    await expect(target.getByLabel("Pickup address")).toBeVisible();
+    await expect(target.getByLabel("Pickup date and time: month")).toBeVisible();
+    await expect(target.getByLabel("Payment preference")).toBeVisible();
+    if (channelLabel) await expect(target.getByText(channelLabel, { exact: true })).toBeVisible();
+  }
+
+  await page.goto("/book");
+  await expectCompleteForm(page);
+
+  const dispatcherPage = await browser.newPage();
+  await login(dispatcherPage, fixture.dispatcher.email, /\/dispatch/);
+  await dispatcherPage.getByRole("link", { name: "+ New phone booking" }).click();
+  await expect(dispatcherPage).toHaveURL(/\/book\?source=phone/);
+  await expectCompleteForm(dispatcherPage, "Dispatcher phone booking");
+  await dispatcherPage.close();
+
+  const hospitalPage = await browser.newPage();
+  await login(hospitalPage, fixture.hospital.email, /\/hospital/);
+  await hospitalPage.getByRole("link", { name: "Book a trip for a patient" }).click();
+  await expect(hospitalPage).toHaveURL(/\/book\?source=hospital/);
+  await expectCompleteForm(hospitalPage, "Hospital portal booking");
+  await hospitalPage.close();
+});
+
 test("admin fleet, staff, account controls, pricing form, and driver verification work", async ({ page }) => {
   await login(page, fixture.admin.email, /\/admin/);
   const api = page.context().request;
@@ -469,11 +500,19 @@ test("dispatch, assignment guards, driver lifecycle, logs, invoicing, and report
 
   const invalidJump = await dispatchApi.patch(`/api/trips/${fixture.workflowTrip.id}`, { data: { status: "COMPLETED" } });
   expect(invalidJump.status()).toBe(400);
-  const assigned = await dispatchApi.patch(`/api/trips/${fixture.workflowTrip.id}`, {
-    data: { driverId: fixture.driver.profileId, vehicleId: fixture.vehicle.id },
-  });
-  expect(assigned.status()).toBe(200);
-  expect((await assigned.json()).trip.status).toBe("ASSIGNED");
+  await page.goto("/dispatch");
+  const tripCard = page.getByRole("link", { name: fixture.workflowTrip.referenceCode }).locator("xpath=ancestor::div[.//select][1]");
+  await tripCard.getByLabel(`Driver for ${fixture.workflowTrip.referenceCode}`).selectOption(fixture.driver.profileId);
+  await tripCard.getByLabel(`Vehicle for ${fixture.workflowTrip.referenceCode}`).selectOption(fixture.vehicle.id);
+  await tripCard.getByRole("button", { name: "Assign trip" }).click();
+  await expect(tripCard.getByText("ASSIGNED", { exact: true })).toBeVisible();
+  await expect(tripCard.getByText("Handled by Release Dispatcher", { exact: true })).toBeVisible();
+
+  const storedAssignment = await prisma.trip.findUniqueOrThrow({ where: { id: fixture.workflowTrip.id } });
+  expect(storedAssignment.source).toBe("PHONE");
+  expect(storedAssignment.driverId).toBe(fixture.driver.profileId);
+  expect(storedAssignment.vehicleId).toBe(fixture.vehicle.id);
+  expect(storedAssignment.dispatchedById).toBe(fixture.dispatcher.id);
 
   const adminPage = await browser.newPage();
   await login(adminPage, fixture.admin.email, /\/admin/);

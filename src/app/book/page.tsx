@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PublicHeader from "@/components/PublicHeader";
 import Footer from "@/components/Footer";
 import AddressAutocomplete, { type ResolvedPlace } from "@/components/AddressAutocomplete";
@@ -15,6 +15,7 @@ type MobilityType = "AMBULATORY" | "WHEELCHAIR" | "STRETCHER";
 type PickupTimePreference = "SPECIFIC" | "ASAP" | "FLEXIBLE";
 type ReturnTripType = "ONE_WAY" | "SCHEDULED_RETURN" | "WAIT_AND_RETURN" | "CALL_FOR_RETURN";
 type PaymentPreference = "CASH" | "CARD" | "E_TRANSFER" | "DIRECT_DEPOSIT" | "INVOICE" | "OTHER";
+type BookingChannel = "PUBLIC" | "PHONE" | "HOSPITAL";
 
 type Breakdown = {
   baseFare: number;
@@ -44,7 +45,18 @@ const SERVICE_OPTIONS: { value: MobilityType; title: string; copy: string; rate:
 ];
 
 export default function BookPage() {
+  return (
+    <Suspense fallback={null}>
+      <BookingPageContent />
+    </Suspense>
+  );
+}
+
+function BookingPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedSource = searchParams.get("source");
+  const bookingChannel: BookingChannel = requestedSource === "phone" ? "PHONE" : requestedSource === "hospital" ? "HOSPITAL" : "PUBLIC";
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupPlace, setPickupPlace] = useState<ResolvedPlace | null>(null);
   const [pickupDepartment, setPickupDepartment] = useState("");
@@ -217,11 +229,13 @@ export default function BookPage() {
 
     setSubmitting(true);
     try {
+      const requestChannel = bookingChannel;
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...commonFareFields,
+          source: requestChannel === "PHONE" ? "PHONE" : undefined,
           distanceKm,
           scheduledAt: torontoLocalDateTimeToIso(scheduledAt),
           contactName,
@@ -254,6 +268,16 @@ export default function BookPage() {
         return;
       }
       const data = await res.json();
+      if (requestChannel === "PHONE") {
+        router.push(`/dispatch?booked=${data.tripId}`);
+        router.refresh();
+        return;
+      }
+      if (requestChannel === "HOSPITAL") {
+        router.push(`/hospital?booked=${data.tripId}`);
+        router.refresh();
+        return;
+      }
       if (data.accessToken) {
         const accessResult = await signIn("booking-access", {
           token: data.accessToken,
@@ -319,6 +343,15 @@ export default function BookPage() {
     <>
       <PublicHeader />
       <main className={styles.page}>
+        {bookingChannel !== "PUBLIC" && (
+          <div className={styles.channelBanner} role="status">
+            <span>
+              <strong>{bookingChannel === "PHONE" ? "Dispatcher phone booking" : "Hospital portal booking"}</strong>
+              This request uses the same complete fields and live pricing as the public booking form.
+            </span>
+            <Link href={bookingChannel === "PHONE" ? "/dispatch" : "/hospital"}>Return to portal</Link>
+          </div>
+        )}
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>24/7 non-emergency medical transport</p>

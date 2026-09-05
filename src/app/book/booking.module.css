@@ -6,6 +6,24 @@
     #fbf8fc;
 }
 
+.channelBanner {
+  display: flex;
+  width: min(1220px, calc(100% - 32px));
+  margin: 22px auto -12px;
+  padding: 14px 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #d9b7ed;
+  border-radius: 15px;
+  color: #5a3d66;
+  background: #f7eafd;
+  font-size: 12px;
+}
+.channelBanner span { display: flex; flex-direction: column; gap: 2px; }
+.channelBanner strong { color: #741dac; font-size: 13px; }
+.channelBanner a { flex: 0 0 auto; padding: 8px 12px; border-radius: 9px; color: white; background: #922bea; font-weight: 800; }
+
 .hero {
   display: flex;
   width: min(1220px, calc(100% - 32px));
@@ -172,6 +190,7 @@ textarea.input { resize: vertical; }
 }
 
 @media (max-width: 760px) {
+  .channelBanner { align-items: flex-start; flex-direction: column; }
   .hero { align-items: flex-start; padding: 28px 24px; flex-direction: column; }
   .heroHelp { width: 100%; flex-basis: auto; }
 }

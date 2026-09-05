@@ -21,6 +21,8 @@
     "test:e2e:headed": "NEXT_DIST_DIR=.next-e2e npm run build && NEXT_DIST_DIR=.next-e2e playwright test --headed",
     "test": "npm run test:unit && npm run test:e2e",
     "check:env": "tsx scripts/check-env.ts",
+    "demo:record": "node scripts/record-client-walkthrough.mjs",
+    "demo:cleanup": "tsx scripts/cleanup-walkthrough-demo.ts",
     "check": "npm run check:env && npx prisma validate && npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {

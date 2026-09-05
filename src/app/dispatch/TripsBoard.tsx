@@ -9,6 +9,7 @@ type Trip = {
   id: string;
   referenceCode: string;
   status: string;
+  source: string;
   pickupAddress: string;
   pickupDepartment: string | null;
   pickupRoom: string | null;
@@ -31,6 +32,7 @@ type Trip = {
   driverName: string | null;
   vehicleId: string | null;
   vehiclePlate: string | null;
+  dispatchedByName: string | null;
 };
 
 type Driver = { id: string; name: string; onDuty: boolean };
@@ -46,10 +48,18 @@ const STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  WEBSITE: "Website",
+  PHONE: "Phone",
+  HOSPITAL_PORTAL: "Hospital portal",
+  ADMIN: "Admin",
+};
+
 export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]; drivers: Driver[]; vehicles: Vehicle[] }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selections, setSelections] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
 
   async function updateTrip(tripId: string, payload: Record<string, unknown>) {
     setBusyId(tripId);
@@ -65,6 +75,11 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
         setError(data?.error ?? "The trip could not be updated.");
         return;
       }
+      setSelections((current) => {
+        const next = { ...current };
+        delete next[tripId];
+        return next;
+      });
       router.refresh();
     } catch {
       setError("The trip could not be updated. Check the connection and try again.");
@@ -73,8 +88,25 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
     }
   }
 
-  async function assign(tripId: string, driverId: string, vehicleId: string) {
-    await updateTrip(tripId, { driverId: driverId || null, vehicleId: vehicleId || null });
+  function selectResource(tripId: string, field: "driverId" | "vehicleId", value: string) {
+    const trip = trips.find((item) => item.id === tripId);
+    setSelections((current) => ({
+      ...current,
+      [tripId]: {
+        ...(current[tripId] ?? { driverId: trip?.driverId ?? "", vehicleId: trip?.vehicleId ?? "" }),
+        [field]: value,
+      },
+    }));
+  }
+
+  async function assign(tripId: string) {
+    const trip = trips.find((item) => item.id === tripId);
+    const selection = selections[tripId] ?? { driverId: trip?.driverId ?? "", vehicleId: trip?.vehicleId ?? "" };
+    if (!selection?.driverId || !selection.vehicleId) {
+      setError("Choose both a driver and a compatible vehicle before assigning the trip.");
+      return;
+    }
+    await updateTrip(tripId, { driverId: selection.driverId, vehicleId: selection.vehicleId });
   }
 
   function compatibleVehicles(mobilityType: string) {
@@ -96,7 +128,9 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
   return (
     <div className="space-y-3">
       {error && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{error}</p>}
-      {trips.map((trip) => (
+      {trips.map((trip) => {
+        const selection = selections[trip.id] ?? { driverId: trip.driverId ?? "", vehicleId: trip.vehicleId ?? "" };
+        return (
         <div key={trip.id} className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -107,11 +141,17 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[trip.status] ?? "bg-muted"}`}>
                   {trip.status}
                 </span>
+                <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {SOURCE_LABELS[trip.source] ?? trip.source.replaceAll("_", " ")}
+                </span>
               </div>
               <p className="mt-1 text-sm font-medium">{trip.guestName}</p>
               {trip.medicalRecordNumber && <p className="text-xs text-muted-foreground">MRN: {trip.medicalRecordNumber}</p>}
               {trip.guestPhone && <p className="text-sm text-muted-foreground">{trip.guestPhone}{trip.contactPhoneExtension ? ` ext. ${trip.contactPhoneExtension}` : ""}</p>}
               {trip.contactName && <p className="text-xs text-muted-foreground">Contact: {trip.contactName}</p>}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {trip.dispatchedByName ? `Handled by ${trip.dispatchedByName}` : "Awaiting dispatcher assignment"}
+              </p>
             </div>
             <div className="text-right text-sm text-muted-foreground">
               <p>{formatServiceDateTime(trip.scheduledAt)}</p>
@@ -143,9 +183,10 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <select
-              defaultValue={trip.driverId ?? ""}
+              aria-label={`Driver for ${trip.referenceCode}`}
+              value={selection.driverId}
               disabled={busyId === trip.id}
-              onChange={(e) => assign(trip.id, e.target.value, trip.vehicleId ?? "")}
+              onChange={(e) => selectResource(trip.id, "driverId", e.target.value)}
               className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             >
               <option value="">Assign driver...</option>
@@ -156,9 +197,10 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
               ))}
             </select>
             <select
-              defaultValue={trip.vehicleId ?? ""}
+              aria-label={`Vehicle for ${trip.referenceCode}`}
+              value={selection.vehicleId}
               disabled={busyId === trip.id}
-              onChange={(e) => assign(trip.id, trip.driverId ?? "", e.target.value)}
+              onChange={(e) => selectResource(trip.id, "vehicleId", e.target.value)}
               className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             >
               <option value="">Assign vehicle...</option>
@@ -169,6 +211,14 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
               ))}
             </select>
             <button
+              type="button"
+              disabled={busyId === trip.id || !selection.driverId || !selection.vehicleId}
+              onClick={() => assign(trip.id)}
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busyId === trip.id ? "Saving..." : trip.driverId && trip.vehicleId ? "Update assignment" : "Assign trip"}
+            </button>
+            <button
               disabled={busyId === trip.id}
               onClick={() => cancel(trip.id)}
               className="ml-auto rounded-md border border-danger-fg/30 px-3 py-1.5 text-sm text-danger-fg hover:bg-danger-bg disabled:opacity-50"
@@ -177,7 +227,8 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
             </button>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -4,17 +4,19 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import DashboardShell from "@/components/DashboardShell";
 import { navForRole } from "@/lib/navLinks";
-import HospitalBookingForm from "./HospitalBookingForm";
 import { formatServiceDateTime } from "@/lib/dates";
 
-export default async function HospitalPortalPage() {
+export default async function HospitalPortalPage({ searchParams }: { searchParams: Promise<{ booked?: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "HOSPITAL") redirect("/login");
 
-  const hospital = await prisma.hospitalAccount.findFirst({
-    where: { primaryContactId: session.user.id },
-    include: { trips: { orderBy: { scheduledAt: "desc" }, take: 30 } },
-  });
+  const [hospital, query] = await Promise.all([
+    prisma.hospitalAccount.findFirst({
+      where: { primaryContactId: session.user.id },
+      include: { trips: { orderBy: { scheduledAt: "desc" }, take: 30 } },
+    }),
+    searchParams,
+  ]);
 
   const name = `${session.user.firstName} ${session.user.lastName}`;
   const navLinks = navForRole(session.user.role);
@@ -36,16 +38,31 @@ export default async function HospitalPortalPage() {
 
   return (
     <DashboardShell role={session.user.role} name={name} navLinks={navLinks}>
-      <div>
-        <h1 className="text-2xl font-semibold">{hospital.name}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {upcoming.length} upcoming trip{upcoming.length === 1 ? "" : "s"} · {hospital.trips.length} total
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">{hospital.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {upcoming.length} upcoming trip{upcoming.length === 1 ? "" : "s"} · {hospital.trips.length} total
+          </p>
+        </div>
+        <Link
+          href="/book?source=hospital"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover"
+        >
+          Book a trip for a patient
+        </Link>
       </div>
 
-      <div className="mt-4">
-        <HospitalBookingForm billingEmail={hospital.billingEmail} contactName={name} />
-      </div>
+      {query.booked ? (
+        <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+          Patient trip created successfully. It is visible here and in the shared dispatcher queue.
+        </div>
+      ) : (
+        <div className="mt-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          Hospital bookings use the complete Gray Jay Care form with Google-assisted addresses, all patient care fields,
+          long-form dates, return options, and the same live fare breakdown as public bookings.
+        </div>
+      )}
 
       <h2 className="mt-8 text-lg font-semibold">Patient trips</h2>
       <div className="mt-4 space-y-3">
