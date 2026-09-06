@@ -130,6 +130,46 @@ export function bookingConfirmationEmail(params: {
   };
 }
 
+export function operationsBookingEmail(params: {
+  referenceCode: string;
+  sourceLabel: string;
+  contactName: string;
+  passengerName: string;
+  contactEmail: string;
+  contactPhone: string;
+  contactPhoneExtension?: string | null;
+  pickupAddress: string;
+  dropoffAddress: string;
+  scheduledAt: Date;
+  mobilityLabel: string;
+  returnTypeLabel: string;
+  estimatedFare: number;
+  dispatchUrl: string;
+}): { subject: string; html: string } {
+  const phone = params.contactPhoneExtension
+    ? `${params.contactPhone} ext. ${params.contactPhoneExtension}`
+    : params.contactPhone;
+  const details = `
+    <p style="margin-top:0">A new transport request has been submitted and is awaiting dispatcher review.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <tr><td style="padding:8px 0;color:#817486">Reference</td><td style="padding:8px 0;font-weight:700">${escapeHtml(params.referenceCode)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Source</td><td style="padding:8px 0">${escapeHtml(params.sourceLabel)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Contact</td><td style="padding:8px 0">${escapeHtml(params.contactName)} · ${escapeHtml(phone)} · ${escapeHtml(params.contactEmail)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Passenger</td><td style="padding:8px 0">${escapeHtml(params.passengerName)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Pickup</td><td style="padding:8px 0">${escapeHtml(params.pickupAddress)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Drop-off</td><td style="padding:8px 0">${escapeHtml(params.dropoffAddress)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Scheduled</td><td style="padding:8px 0">${escapeHtml(formatTripDate(params.scheduledAt))}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Service</td><td style="padding:8px 0">${escapeHtml(params.mobilityLabel)} · ${escapeHtml(params.returnTypeLabel)}</td></tr>
+      <tr><td style="padding:8px 0;color:#817486">Estimated fare</td><td style="padding:8px 0;font-weight:700;color:#8424c5">$${params.estimatedFare.toFixed(2)}</td></tr>
+    </table>
+    <p style="font-size:13px;color:#817486">For privacy, medical record and detailed care information are available only after secure portal sign-in.</p>
+    ${button(params.dispatchUrl, "Review in dispatcher portal")}`;
+  return {
+    subject: `New booking request — ${params.referenceCode}`,
+    html: emailLayout("New booking request", details),
+  };
+}
+
 export function customerAccountEmail(params: { firstName: string; setupUrl: string; portalUrl: string }): {
   subject: string;
   html: string;

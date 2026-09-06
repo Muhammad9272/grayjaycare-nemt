@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { bookingSchema } from "@/lib/validation/booking";
 import { getActivePricingRule, computeFare, type FareBreakdown } from "@/lib/pricing";
 import { generateReferenceCode } from "@/lib/reference";
-import { sendEmail, bookingConfirmationEmail, customerAccountEmail } from "@/lib/email";
+import { sendEmail, bookingConfirmationEmail, customerAccountEmail, operationsBookingEmail } from "@/lib/email";
 import { auth } from "@/lib/auth";
 import { createBookingAccessToken, createPasswordResetToken } from "@/lib/accountTokens";
 import type { BookingSource, MobilityType } from "@/generated/prisma/client";
@@ -306,6 +306,31 @@ export async function POST(request: Request) {
       }),
     }),
   );
+
+  const operationsEmail = process.env.BOOKING_NOTIFICATION_EMAIL?.trim();
+  if (operationsEmail) {
+    emailTasks.push(
+      sendEmail({
+        to: operationsEmail,
+        ...operationsBookingEmail({
+          referenceCode: result.outboundTrip.referenceCode,
+          sourceLabel: source.toLowerCase().replaceAll("_", " "),
+          contactName: input.contactName || input.guestName,
+          passengerName: input.guestName,
+          contactEmail: normalizedEmail,
+          contactPhone: input.guestPhone,
+          contactPhoneExtension: input.contactPhoneExtension,
+          pickupAddress: input.pickupAddress,
+          dropoffAddress: input.dropoffAddress,
+          scheduledAt: input.scheduledAt,
+          mobilityLabel: input.mobilityType.toLowerCase().replaceAll("_", " "),
+          returnTypeLabel: returnTripType.toLowerCase().replaceAll("_", " "),
+          estimatedFare: totalFare,
+          dispatchUrl: new URL("/dispatch", baseUrl).toString(),
+        }),
+      }),
+    );
+  }
 
   let accessToken: string | null = null;
   if (result.accountCreated && result.accountUser) {

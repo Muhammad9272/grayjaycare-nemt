@@ -40,6 +40,7 @@ if (!process.env.GOOGLE_MAPS_KEY?.trim() && !process.env.GOOGLE_MAPS_API_KEY?.tr
 }
 
 for (const name of ["MAIL_HOST", "MAIL_PORT", "MAIL_USERNAME", "MAIL_PASSWORD", "EMAIL_FROM"]) requireValue(name);
+requireValue("BOOKING_NOTIFICATION_EMAIL");
 const mailPort = Number(process.env.MAIL_PORT);
 if (process.env.MAIL_PORT && (!Number.isInteger(mailPort) || mailPort <= 0 || mailPort > 65535)) {
   failures.push("MAIL_PORT must be a valid TCP port.");

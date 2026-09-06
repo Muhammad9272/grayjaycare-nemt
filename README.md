@@ -5,7 +5,7 @@ Production-oriented booking, dispatch, driver, hospital, customer, fleet, and ac
 ## Implemented workflow
 
 1. A passenger enters Google-assisted pickup and drop-off addresses, chooses care requirements, and receives a server-calculated estimate.
-2. The server independently verifies route distance with Google, calculates the fare, creates the trip, and emails a reference and status link.
+2. The server independently verifies route distance with Google, calculates the fare, creates the trip, emails the customer a reference and status link, and sends a privacy-minimized notification to the operations inbox.
 3. For a new public passenger, the booking atomically creates a customer account and signs the browser directly into the portal. A separate one-hour email link lets the passenger create a password; passwords are never emailed.
 4. Dispatch confirms and assigns a compatible active vehicle plus an approved driver with a valid licence.
 5. The driver advances the trip through assigned, en route, arrived, in progress, and completed states. Every state is recorded in the timeline and emailed to the passenger.
@@ -47,6 +47,7 @@ Open `http://localhost:3000`. Seed accounts use `SEED_PASSWORD`; set a strong, n
 - `NEXTAUTH_URL`: canonical application URL; it must be public HTTPS in production.
 - `GOOGLE_MAPS_KEY`: server-side key for Places Autocomplete, Place Details, and Distance Matrix.
 - `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `EMAIL_FROM`: SMTP delivery.
+- `BOOKING_NOTIFICATION_EMAIL`: internal operations inbox notified whenever a new booking is created.
 - `MAIL_ENCRYPTION`: use `ssl` for implicit TLS; other values use STARTTLS when supported.
 - `DISABLE_OUTBOUND_EMAIL=true`: test/staging safety switch only.
 
