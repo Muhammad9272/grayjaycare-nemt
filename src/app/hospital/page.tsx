@@ -60,7 +60,7 @@ export default async function HospitalPortalPage({ searchParams }: { searchParam
       ) : (
         <div className="mt-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
           Hospital bookings use the complete Gray Jay Care form with Google-assisted addresses, all patient care fields,
-          long-form dates, return options, and the same live fare breakdown as public bookings.
+          long-form dates and return options. Authorized hospital staff also receive an internal live fare breakdown.
         </div>
       )}
 

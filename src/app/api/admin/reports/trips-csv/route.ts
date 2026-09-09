@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
   const header = [
     "Reference", "Completed", "Patient", "MRN", "Booking contact", "Hospital", "Driver", "Vehicle",
-    "Pickup", "Pickup unit", "Dropoff", "Dropoff unit", "Isolation", "DNR", "Oxygen", "Escorts",
+    "Pickup", "Pickup facility", "Pickup unit", "Dropoff", "Dropoff facility", "Dropoff unit", "Isolation", "Isolation details", "DNR", "Oxygen", "Oxygen LPM", "Escorts", "Belongings",
     "Distance (km)", "Fare",
   ];
   const rows = trips.map((t) => [
@@ -44,13 +44,18 @@ export async function GET(request: Request) {
     t.driver ? `${t.driver.user.firstName} ${t.driver.user.lastName}` : "",
     t.vehicle?.plateNumber ?? "",
     t.pickupAddress,
+    t.pickupFacilityName ?? "",
     [t.pickupDepartment, t.pickupRoom].filter(Boolean).join(" / "),
     t.dropoffAddress,
+    t.dropoffFacilityName ?? "",
     [t.dropoffDepartment, t.dropoffRoom].filter(Boolean).join(" / "),
-    t.requiresIsolation ? "Yes" : "No",
-    t.hasDnr ? "Yes" : "No",
-    t.requiresOxygen ? "Yes" : "No",
+    t.isolationRequirement,
+    t.isolationDetails ?? "",
+    t.dnrRequirement,
+    t.oxygenRequirement,
+    t.oxygenLitresPerMinute?.toString() ?? "",
     String(t.escortCount),
+    t.hasBelongings ? t.belongingsDescription || "Yes" : "No",
     t.distanceKm?.toString() ?? "",
     Number(t.finalFare ?? t.estimatedFare ?? 0).toFixed(2),
   ]);

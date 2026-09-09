@@ -11,9 +11,11 @@ type Trip = {
   status: string;
   source: string;
   pickupAddress: string;
+  pickupFacilityName: string | null;
   pickupDepartment: string | null;
   pickupRoom: string | null;
   dropoffAddress: string;
+  dropoffFacilityName: string | null;
   dropoffDepartment: string | null;
   dropoffRoom: string | null;
   scheduledAt: string;
@@ -28,6 +30,13 @@ type Trip = {
   requiresIsolation: boolean;
   hasDnr: boolean;
   requiresOxygen: boolean;
+  oxygenRequirement: string;
+  oxygenLitresPerMinute: number | null;
+  isolationRequirement: string;
+  isolationDetails: string | null;
+  dnrRequirement: string;
+  hasBelongings: boolean;
+  belongingsDescription: string | null;
   driverId: string | null;
   driverName: string | null;
   vehicleId: string | null;
@@ -163,20 +172,26 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
             <p>
               <span className="text-muted-foreground/70">Pickup: </span>
               {trip.pickupAddress}
+              {trip.pickupFacilityName && <small className="block font-medium text-foreground">{trip.pickupFacilityName}</small>}
               {(trip.pickupDepartment || trip.pickupRoom) && <small className="block">{[trip.pickupDepartment, trip.pickupRoom].filter(Boolean).join(" · ")}</small>}
             </p>
             <p>
               <span className="text-muted-foreground/70">Drop-off: </span>
               {trip.dropoffAddress}
+              {trip.dropoffFacilityName && <small className="block font-medium text-foreground">{trip.dropoffFacilityName}</small>}
               {(trip.dropoffDepartment || trip.dropoffRoom) && <small className="block">{[trip.dropoffDepartment, trip.dropoffRoom].filter(Boolean).join(" · ")}</small>}
             </p>
           </div>
 
-          {(trip.requiresIsolation || trip.hasDnr || trip.requiresOxygen || trip.escortCount > 0) && (
+          {(trip.requiresIsolation || trip.hasDnr || trip.requiresOxygen || trip.oxygenRequirement === "NOT_SURE" || trip.isolationRequirement === "NOT_SURE" || trip.dnrRequirement === "NOT_SURE" || trip.hasBelongings || trip.escortCount > 0) && (
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
               {trip.requiresIsolation && <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">Isolation</span>}
+              {trip.isolationRequirement === "NOT_SURE" && <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">Isolation: confirm</span>}
               {trip.hasDnr && <span className="rounded-full bg-red-100 px-2 py-1 text-red-800">DNR paperwork</span>}
+              {trip.dnrRequirement === "NOT_SURE" && <span className="rounded-full bg-red-100 px-2 py-1 text-red-800">DNR: confirm</span>}
               {trip.requiresOxygen && <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">Oxygen</span>}
+              {trip.oxygenRequirement === "NOT_SURE" && <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">Oxygen: confirm</span>}
+              {trip.hasBelongings && <span className="rounded-full bg-muted px-2 py-1">Belongings</span>}
               {trip.escortCount > 0 && <span className="rounded-full bg-muted px-2 py-1">{trip.escortCount} escort{trip.escortCount === 1 ? "" : "s"}</span>}
             </div>
           )}

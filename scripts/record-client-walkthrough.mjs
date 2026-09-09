@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-const BASE_URL = (process.env.DEMO_BASE_URL || "https://grayjaycare.org").replace(/\/$/, "");
+const BASE_URL = (process.env.DEMO_BASE_URL || "https://grayjaycare.com").replace(/\/$/, "");
 const PASSWORD = process.env.DEMO_PASSWORD;
 const VOICE = process.env.DEMO_VOICE || "Samantha";
 const SPEECH_RATE = process.env.DEMO_SPEECH_RATE || "155";

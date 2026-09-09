@@ -374,19 +374,27 @@ test("a public booking creates an account and signs the passenger directly into 
   await page.getByLabel("Phone extension").fill("214");
   await page.getByLabel("Email address").fill(fixture.autoAccount.email);
   await page.getByLabel("Pickup address").fill("100 Wellington Street, London, ON");
+  await page.getByLabel("Pickup facility / hospital name").fill("Victoria Hospital");
   await page.getByLabel("Pickup department").fill("Endoscopy Unit");
   await page.getByLabel("Pickup room").fill("Room 200");
   await page.getByLabel("Drop-off address").fill("800 Commissioners Road East, London, ON");
+  await page.getByLabel("Drop-off facility / hospital name").fill("University Hospital");
   await page.getByLabel("Drop-off department").fill("Imaging");
   await fillLongDate(page, "Pickup date and time", serviceDateTimeInputValue(new Date(Date.now() + 48 * 60 * 60_000)));
   await page.getByLabel("Patient's full name").fill("Automatic Patient");
   await page.getByLabel("Medical record number").fill("MRN-2026-001");
   await page.getByLabel("People escorting the patient").selectOption("1");
-  await page.getByLabel("Isolation precautions?").selectOption("yes");
-  await page.getByLabel("DNR paperwork available?").selectOption("yes");
+  await page.getByLabel("Is oxygen required?").selectOption("YES");
+  await page.getByLabel("Oxygen flow rate").fill("2");
+  await page.getByLabel("Are isolation precautions required?").selectOption("YES");
+  await page.getByLabel("Isolation type / precautions").fill("Droplet precautions");
+  await page.getByLabel("Is DNR paperwork available?").selectOption("YES");
   await page.getByLabel("Payment preference").selectOption("CARD");
+  await page.getByLabel("Will the patient have belongings?").selectOption("YES");
+  await page.getByLabel("Describe the belongings").fill("One bag and a walker");
   await page.getByText("Medical documents are available").click();
-  await expect(page.getByText("$68.70", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Send your request", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your trip fare", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Request this booking" }).click();
   await expect(page).toHaveURL(/\/portal\?booked=/, { timeout: 30_000 });
   await expect(page.getByText("Your booking is now in the portal.")).toBeVisible();
@@ -403,9 +411,15 @@ test("a public booking creates an account and signs the passenger directly into 
   expect(created.guestName).toBe("Automatic Patient");
   expect(created.medicalRecordNumber).toBe("MRN-2026-001");
   expect(created.pickupDepartment).toBe("Endoscopy Unit");
+  expect(created.pickupFacilityName).toBe("Victoria Hospital");
+  expect(created.dropoffFacilityName).toBe("University Hospital");
   expect(created.escortCount).toBe(1);
   expect(created.requiresIsolation).toBe(true);
+  expect(created.isolationDetails).toBe("Droplet precautions");
   expect(created.hasDnr).toBe(true);
+  expect(created.oxygenLitresPerMinute?.toString()).toBe("2");
+  expect(created.hasBelongings).toBe(true);
+  expect(created.belongingsDescription).toBe("One bag and a walker");
   expect(created.paymentPreference).toBe("CARD");
   expect(created.medicalDocumentsAvailable).toBe(true);
 });
@@ -414,13 +428,18 @@ test("public, dispatcher, and hospital entry points use the same complete bookin
   async function expectCompleteForm(target: Page, channelLabel?: string) {
     await expect(target.getByRole("heading", { level: 1, name: "Book a safe, caring ride" })).toBeVisible();
     const sections = await target.locator("form h2").allTextContents();
-    expect(sections.slice(0, 3)).toEqual(["Contact information", "Trip details", "Patient information"]);
-    await expect(target.getByText("Live estimate", { exact: true })).toBeVisible();
-    await expect(target.getByText("Your trip fare", { exact: true })).toBeVisible();
+    expect(sections.slice(0, 3)).toEqual(["Contact information", "Patient information", "Trip details"]);
     await expect(target.getByLabel("Pickup address")).toBeVisible();
     await expect(target.getByLabel("Pickup date and time: month")).toBeVisible();
     await expect(target.getByLabel("Payment preference")).toBeVisible();
-    if (channelLabel) await expect(target.getByText(channelLabel, { exact: true })).toBeVisible();
+    if (channelLabel) {
+      await expect(target.getByText(channelLabel, { exact: true })).toBeVisible();
+      await expect(target.getByText("Live estimate", { exact: true })).toBeVisible();
+      await expect(target.getByText("Your trip fare", { exact: true })).toBeVisible();
+    } else {
+      await expect(target.getByText("Send your request", { exact: true })).toBeVisible();
+      await expect(target.getByText("Your trip fare", { exact: true })).toHaveCount(0);
+    }
   }
 
   await page.goto("/book");

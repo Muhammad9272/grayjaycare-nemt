@@ -3,7 +3,8 @@ import { z } from "zod";
 export const mobilityTypeEnum = z.enum(["AMBULATORY", "WHEELCHAIR", "STRETCHER"]);
 export const pickupTimePreferenceEnum = z.enum(["SPECIFIC", "ASAP", "FLEXIBLE"]);
 export const returnTripTypeEnum = z.enum(["ONE_WAY", "SCHEDULED_RETURN", "WAIT_AND_RETURN", "CALL_FOR_RETURN"]);
-export const bookingPaymentPreferenceEnum = z.enum(["CASH", "CARD", "E_TRANSFER", "DIRECT_DEPOSIT", "INVOICE", "OTHER"]);
+export const bookingPaymentPreferenceEnum = z.enum(["CASH", "CARD", "E_TRANSFER", "DIRECT_DEPOSIT", "INVOICE", "INSURANCE", "OPGT", "OTHER"]);
+export const careRequirementAnswerEnum = z.enum(["NO", "YES", "NOT_SURE"]);
 
 export const quoteSchema = z.object({
   pickupAddress: z.string().trim().min(3).max(500),
@@ -26,22 +27,31 @@ export const quoteSchema = z.object({
 
 export const bookingSchema = quoteSchema
   .extend({
-    distanceKm: z.coerce.number().positive().max(5000),
+    distanceKm: z.coerce.number().positive().max(5000).optional(),
     guestName: z.string().trim().min(2).max(120),
     guestEmail: z.string().trim().toLowerCase().email().max(254),
     guestPhone: z.string().trim().min(7).max(30),
     contactName: z.string().trim().min(2).max(120).optional(),
     contactPhoneExtension: z.string().trim().max(20).optional(),
     medicalRecordNumber: z.string().trim().max(100).optional(),
+    pickupFacilityName: z.string().trim().max(160).optional(),
     pickupDepartment: z.string().trim().max(120).optional(),
     pickupRoom: z.string().trim().max(60).optional(),
     dropoffDepartment: z.string().trim().max(120).optional(),
+    dropoffFacilityName: z.string().trim().max(160).optional(),
     dropoffRoom: z.string().trim().max(60).optional(),
     pickupTimePreference: pickupTimePreferenceEnum.default("SPECIFIC"),
     returnTripType: returnTripTypeEnum.optional(),
     escortCount: z.coerce.number().int().min(0).max(10).default(0),
     requiresIsolation: z.coerce.boolean().default(false),
     hasDnr: z.coerce.boolean().default(false),
+    oxygenRequirement: careRequirementAnswerEnum.default("NO"),
+    oxygenLitresPerMinute: z.coerce.number().positive().max(30).optional(),
+    isolationRequirement: careRequirementAnswerEnum.default("NO"),
+    isolationDetails: z.string().trim().max(300).optional(),
+    dnrRequirement: careRequirementAnswerEnum.default("NO"),
+    hasBelongings: z.coerce.boolean().default(false),
+    belongingsDescription: z.string().trim().max(1000).optional(),
     paymentPreference: bookingPaymentPreferenceEnum.optional(),
     medicalDocumentsAvailable: z.coerce.boolean().default(false),
     passengerWeightKg: z.coerce.number().int().positive().max(1000).optional(),
@@ -58,11 +68,23 @@ export const bookingSchema = quoteSchema
     if (input.extraAttendant && input.extraAttendantHours <= 0) {
       context.addIssue({ code: "custom", path: ["extraAttendantHours"], message: "Enter the attendant time." });
     }
+    if (input.oxygenRequirement === "YES" && !input.oxygenLitresPerMinute) {
+      context.addIssue({ code: "custom", path: ["oxygenLitresPerMinute"], message: "Enter the oxygen flow rate in LPM." });
+    }
+    if (input.isolationRequirement === "YES" && !input.isolationDetails) {
+      context.addIssue({ code: "custom", path: ["isolationDetails"], message: "Enter the isolation type or precautions." });
+    }
+    if (input.hasBelongings && !input.belongingsDescription) {
+      context.addIssue({ code: "custom", path: ["belongingsDescription"], message: "Describe the passenger belongings." });
+    }
+    if (input.paymentPreference === "INVOICE" && !input.medicalRecordNumber) {
+      context.addIssue({ code: "custom", path: ["medicalRecordNumber"], message: "MRN is required for direct hospital billing." });
+    }
     const returnTripType = input.returnTripType ?? (input.isRoundTrip ? "SCHEDULED_RETURN" : "ONE_WAY");
     const needsScheduledReturn = returnTripType === "SCHEDULED_RETURN" || returnTripType === "WAIT_AND_RETURN";
     if (needsScheduledReturn) {
-      if (!input.returnScheduledAt || !input.returnDistanceKm) {
-        context.addIssue({ code: "custom", path: ["returnScheduledAt"], message: "Return date, time and distance are required." });
+      if (!input.returnScheduledAt) {
+        context.addIssue({ code: "custom", path: ["returnScheduledAt"], message: "Return date and time are required." });
       } else if (input.returnScheduledAt <= input.scheduledAt) {
         context.addIssue({ code: "custom", path: ["returnScheduledAt"], message: "Return pickup must be after the outbound pickup." });
       }

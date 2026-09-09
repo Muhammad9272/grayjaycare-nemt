@@ -87,6 +87,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
             <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <Field label="Pickup" value={trip.pickupAddress} />
               <Field label="Drop-off" value={trip.dropoffAddress} />
+              {trip.pickupFacilityName && <Field label="Pickup facility" value={trip.pickupFacilityName} />}
+              {trip.dropoffFacilityName && <Field label="Drop-off facility" value={trip.dropoffFacilityName} />}
               {(trip.pickupDepartment || trip.pickupRoom) && (
                 <Field label="Pickup unit" value={[trip.pickupDepartment, trip.pickupRoom].filter(Boolean).join(" · ")} />
               )}
@@ -101,9 +103,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               <Field label="Trip location" value={trip.isOutOfCity ? "Outside London, ON" : "Within London, ON"} />
               <Field label="Wait time" value={`${trip.estimatedWaitMinutes} min`} />
               <Field label="Bariatric" value={trip.isBariatric ? "Yes" : "No"} />
-              <Field label="Oxygen" value={trip.requiresOxygen ? "Yes" : "No"} />
-              <Field label="Isolation precautions" value={trip.requiresIsolation ? "Yes" : "No"} />
-              <Field label="DNR paperwork" value={trip.hasDnr ? "Available" : "Not indicated"} />
+              <Field label="Oxygen" value={`${humanize(trip.oxygenRequirement)}${trip.oxygenLitresPerMinute ? ` · ${trip.oxygenLitresPerMinute} LPM` : ""}`} />
+              <Field label="Isolation precautions" value={`${humanize(trip.isolationRequirement)}${trip.isolationDetails ? ` · ${trip.isolationDetails}` : ""}`} />
+              <Field label="DNR paperwork" value={humanize(trip.dnrRequirement)} />
+              <Field label="Belongings" value={trip.hasBelongings ? trip.belongingsDescription || "Yes" : "No"} />
               <Field label="Patient escorts" value={String(trip.escortCount)} />
               <Field label="Payment preference" value={trip.paymentPreference ? humanize(trip.paymentPreference) : "Not specified"} />
               <Field label="Medical documents" value={trip.medicalDocumentsAvailable ? "Available — arrange secure collection" : "Not indicated"} />

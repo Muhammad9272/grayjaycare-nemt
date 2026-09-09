@@ -23,6 +23,7 @@
     "check:env": "tsx scripts/check-env.ts",
     "demo:record": "node scripts/record-client-walkthrough.mjs",
     "demo:cleanup": "tsx scripts/cleanup-walkthrough-demo.ts",
+    "portfolio:create": "node scripts/create-portfolio-assets.mjs",
     "check": "npm run check:env && npx prisma validate && npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {

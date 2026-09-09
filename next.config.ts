@@ -11,12 +11,13 @@ const nextConfig: NextConfig = {
   async headers() {
     const contentSecurityPolicy = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://code.tidio.co https://*.tidiochat.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://grayjaycare.ca https://embed-ssl.wistia.com",
-      "font-src 'self' data:",
-      "connect-src 'self'",
-      "frame-src https://fast.wistia.net https://www.openstreetmap.org",
+      "img-src 'self' data: blob: https://grayjaycare.ca https://embed-ssl.wistia.com https://*.tidio.co https://*.tidiochat.com",
+      "font-src 'self' data: https://code.tidio.co https://*.tidiochat.com",
+      "media-src 'self' https://code.tidio.co https://*.tidiochat.com",
+      "connect-src 'self' https://*.tidio.co https://*.tidiochat.com wss://*.tidio.co wss://*.tidiochat.com",
+      "frame-src https://fast.wistia.net https://www.openstreetmap.org https://*.tidio.co https://*.tidiochat.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

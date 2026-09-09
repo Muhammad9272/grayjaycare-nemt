@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Marcellus, Source_Sans_3 } from "next/font/google";
 import styles from "./landing.module.css";
+import TidioChat from "@/components/TidioChat";
 
 const marcellus = Marcellus({
   subsets: ["latin"],
@@ -61,31 +62,31 @@ const SERVICES = [
 
 const FAQS = [
   {
-    q: "What is Non-Emergency Medical Transportation (NEMT)?",
-    a: "Non-Emergency Medical Transportation (NEMT) provides transportation for patients who need to get to medical appointments but do not have an emergency medical condition. This service helps individuals reach hospitals, doctor’s offices, dialysis centers, and other healthcare facilities safely and on time.",
+    q: "What types of transportation do you provide?",
+    a: "We provide non-emergency wheelchair, stretcher, ambulatory, and assisted patient transportation for medical appointments, hospital discharges, transfers, long-term care visits, and other approved travel needs.",
   },
   {
-    q: "How do I book a ride for NEMT services?",
-    a: "Call our team or use the online booking form with your appointment time, pickup location, destination, and any mobility requirements.",
+    q: "What areas do you serve?",
+    a: "We serve Southwestern Ontario and beyond, including trips to Toronto and Hamilton. Transportation outside Ontario or Canada may also be arranged in advance—please contact our team to discuss your route.",
   },
   {
-    q: "What types of vehicles are used for NEMT?",
-    a: "Our purpose-equipped fleet includes wheelchair-accessible and stretcher vehicles chosen to suit each passenger’s mobility and care needs.",
-  },
-  {
-    q: "Are the drivers trained to handle medical transportation?",
-    a: "Yes. Our professional attendants are trained to assist passengers safely, respectfully, and comfortably throughout their journey.",
+    q: "How do I book transportation?",
+    a: "Submit the secure online booking form or call us at (519) 933-5090. Please have the passenger, pickup, destination, timing, and mobility details ready so our dispatcher can confirm the ride.",
   },
   {
     q: "How can I cancel or reschedule my ride?",
-    a: "Please call us as soon as possible at (519) 933-5090 and our team will help update your booking.",
+    a: "Please provide at least 24 hours’ notice whenever possible. Cancellations with less notice or a no-show may be subject to a $150 fee. We understand circumstances can change and review each situation case by case.",
+  },
+  {
+    q: "Can pickup or arrival times be delayed?",
+    a: "We work hard to stay on schedule, but weather, road conditions, traffic, vehicle or equipment issues, and facility circumstances beyond our reasonable control can occasionally cause delays. We will communicate updates as soon as possible.",
   },
 ];
 
 const TESTIMONIALS = [
   {
-    name: "David Downs",
-    quote: "Excellent service.",
+    name: "Ronald Patterson",
+    quote: "The entire process was smooth and stress-free. The worker was kind, patient, and understanding. Professional service and genuine care.",
   },
   {
     name: "Amy Osborn",
@@ -93,9 +94,8 @@ const TESTIMONIALS = [
       "My 84 year old father just recently became unable to walk. We had an appointment at University hospital and Gray Jay Care made the trip professional, caring, and reassuring.",
   },
   {
-    name: "John Cooke",
-    quote:
-      "I was unable to take my wife to her appointment and Gray Jay Care stepped up at the last minute to help. My wife was very impressed.",
+    name: "Faizan Ahmad",
+    quote: "Great guys! Exceptional service, always my first choice for patient transport.",
   },
   {
     name: "AM",
@@ -109,6 +109,7 @@ const NAV_LINKS = [
   { href: "#about-us", label: "About US" },
   { href: "#faq", label: "FAQ" },
   { href: "#contact", label: "Contact Us" },
+  { href: "/careers", label: "Careers" },
 ];
 
 export default function Home() {
@@ -162,7 +163,7 @@ export default function Home() {
                 <span className={styles.quoteMark} aria-hidden="true">“</span>
                 <p>Your Trusted Partner in<br />Patient Transport</p>
               </div>
-              <p className={styles.customerCount}>5000+</p>
+              <p className={styles.customerCount}>10000+</p>
               <p className={styles.proofLabel}>Satisfied customers</p>
               <a className={styles.phoneNumber} href="tel:+15199335090">(519) 933-5090</a>
               <p className={styles.proofLabel}>Call us:</p>
@@ -204,11 +205,18 @@ export default function Home() {
 
             <div className={styles.aboutCopy}>
               <p className={`${styles.eyebrow} ${styles.orangeEyebrow}`}>About us</p>
-              <h2>Comfort and Care on the Move</h2>
+              <h2>About Gray Jay Care</h2>
+              <p className={styles.aboutTagline}>Two Brothers. One Purpose. A Commitment to Care.</p>
               <p className={styles.aboutLead}>
-                At Gray Jay Care, we are dedicated to providing safe and reliable non-emergency medical
-                transportation, ensuring that our clients reach their destinations comfortably and on time.
+                Gray Jay Care was founded by two brothers with up to five years of experience in patient
+                transportation. After seeing the need for safer, more reliable, on-time and compassionate service,
+                they created a family-owned company built around care.
               </p>
+              <div className={styles.aboutStory}>
+                <p>Our values come from our mother, who raised us after we lost our father at a young age. She taught us that caring for others is something you show through your actions.</p>
+                <p>Today, we proudly serve hospitals, nursing homes, clinics, insurance claims, OPGT clients, individuals and families throughout Southwestern Ontario. The name Gray Jay was inspired by the beautiful Canadian bird and reflects the Canadian roots and values that are part of who we are.</p>
+                <div><strong>Our Promise</strong><span>Every passenger is treated with the care, respect and patience we would want for our own family.</span><em>Gray Jay Care — Safe Journeys, Caring Hands.</em></div>
+              </div>
               <div className={styles.features}>
                 {FEATURES.map((feature) => (
                   <article className={styles.feature} key={feature.title}>
@@ -296,6 +304,7 @@ export default function Home() {
               </article>
             ))}
           </div>
+          <a className={styles.googleReviewsLink} href="https://share.google/xkWjwOPfR9apkRU8Z" target="_blank" rel="noreferrer">View our latest Google reviews</a>
         </section>
 
         <section id="contact" className={styles.contact}>
@@ -312,8 +321,8 @@ export default function Home() {
               <div className={styles.contactLinks}>
                 <ContactLink href="tel:+15199335090" icon="phone" label="(519) 933-5090" />
                 <ContactLink href="mailto:support@grayjaycare.com" icon="message" label="support@GrayJayCare.com" />
-                <ContactLink href="https://www.instagram.com/grayjaycare/" icon="instagram" label="Follow us" external />
-                <ContactLink href="https://www.facebook.com/grayjaycare" icon="facebook" label="Get last updates" external />
+                <ContactLink href="https://www.instagram.com/grayjaycare/" icon="instagram" label="Follow Us on Instagram" external />
+                <ContactLink href="https://www.facebook.com/grayjaycare" icon="facebook" label="Follow Us on Facebook" external />
               </div>
             </div>
             <div className={styles.mapWrap}>
@@ -331,6 +340,7 @@ export default function Home() {
       <footer className={styles.footer}>
         Copyright ©{new Date().getFullYear()} Gray Jay Care. All rights reserved.
       </footer>
+      <TidioChat />
     </div>
   );
 }

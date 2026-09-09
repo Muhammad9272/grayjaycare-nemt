@@ -69,7 +69,15 @@ enum BookingPaymentPreference {
   E_TRANSFER
   DIRECT_DEPOSIT
   INVOICE
+  INSURANCE
+  OPGT
   OTHER
+}
+
+enum CareRequirementAnswer {
+  NO
+  YES
+  NOT_SURE
 }
 
 enum VehicleType {
@@ -313,11 +321,13 @@ model Trip {
   pickupAddress     String
   pickupLat         Float?
   pickupLng         Float?
+  pickupFacilityName String?
   pickupDepartment  String?
   pickupRoom        String?
   dropoffAddress    String
   dropoffLat        Float?
   dropoffLng        Float?
+  dropoffFacilityName String?
   dropoffDepartment String?
   dropoffRoom       String?
 
@@ -332,8 +342,15 @@ model Trip {
   isBariatric               Boolean                   @default(false)
   isOutOfCity               Boolean                   @default(false) // false = within London, ON; true = outside London
   requiresOxygen            Boolean                   @default(false)
+  oxygenRequirement         CareRequirementAnswer     @default(NO)
+  oxygenLitresPerMinute     Decimal?                  @db.Decimal(5, 2)
   requiresIsolation         Boolean                   @default(false)
+  isolationRequirement      CareRequirementAnswer     @default(NO)
+  isolationDetails          String?
   hasDnr                    Boolean                   @default(false)
+  dnrRequirement            CareRequirementAnswer     @default(NO)
+  hasBelongings             Boolean                   @default(false)
+  belongingsDescription     String?                   @db.Text
   escortCount               Int                       @default(0)
   paymentPreference         BookingPaymentPreference?
   medicalDocumentsAvailable Boolean                   @default(false)

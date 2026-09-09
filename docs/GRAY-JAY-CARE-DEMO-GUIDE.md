@@ -4,7 +4,7 @@ This guide follows the full operational story shown in the narrated walkthrough 
 
 ## Before the demonstration
 
-1. Open `https://grayjaycare.org` in a private browser window.
+1. Open `https://grayjaycare.com` in a private browser window.
 2. Keep the role credentials in a separate private note. Never display or email the shared demo password.
 3. Use clearly fictional details, such as “Training Patient,” and an `example.test` email address.
 4. Remind viewers that Gray Jay Care is a non-emergency transportation service. For a medical emergency, the user must call 911.

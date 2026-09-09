@@ -19,15 +19,22 @@ describe("booking details validation", () => {
       contactName: "Test Requestor",
       contactPhoneExtension: "214",
       medicalRecordNumber: "MRN-2026-001",
+      pickupFacilityName: "Victoria Hospital",
       pickupDepartment: "Endoscopy",
       pickupRoom: "200",
       dropoffDepartment: "Imaging",
+      dropoffFacilityName: "University Hospital",
       dropoffRoom: "310",
       pickupTimePreference: "ASAP",
       escortCount: 2,
-      requiresIsolation: true,
-      hasDnr: true,
-      paymentPreference: "CARD",
+      oxygenRequirement: "YES",
+      oxygenLitresPerMinute: 2,
+      isolationRequirement: "YES",
+      isolationDetails: "Droplet precautions",
+      dnrRequirement: "YES",
+      hasBelongings: true,
+      belongingsDescription: "One bag and a walker",
+      paymentPreference: "OPGT",
       medicalDocumentsAvailable: true,
     });
     assert.equal(parsed.success, true);
@@ -48,6 +55,26 @@ describe("booking details validation", () => {
       isRoundTrip: true,
       returnTripType: "SCHEDULED_RETURN",
     });
+    assert.equal(parsed.success, false);
+  });
+
+  it("accepts a public booking without a client-supplied distance", () => {
+    const booking = { ...baseBooking(), distanceKm: undefined };
+    assert.equal(bookingSchema.safeParse(booking).success, true);
+  });
+
+  it("requires care details when oxygen, isolation or belongings are selected", () => {
+    const parsed = bookingSchema.safeParse({
+      ...baseBooking(),
+      oxygenRequirement: "YES",
+      isolationRequirement: "YES",
+      hasBelongings: true,
+    });
+    assert.equal(parsed.success, false);
+  });
+
+  it("requires an MRN for direct hospital billing", () => {
+    const parsed = bookingSchema.safeParse({ ...baseBooking(), paymentPreference: "INVOICE" });
     assert.equal(parsed.success, false);
   });
 });

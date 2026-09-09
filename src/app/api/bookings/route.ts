@@ -22,9 +22,9 @@ export async function POST(request: Request) {
 
   const returnTripType = input.returnTripType ?? (input.isRoundTrip ? "SCHEDULED_RETURN" : "ONE_WAY");
   const hasReturnLeg = returnTripType === "SCHEDULED_RETURN" || returnTripType === "WAIT_AND_RETURN";
-  if (hasReturnLeg && (!input.returnScheduledAt || !input.returnDistanceKm)) {
+  if (hasReturnLeg && !input.returnScheduledAt) {
     return NextResponse.json(
-      { error: "Return trip date/time and distance are required for this return option." },
+      { error: "Return trip date and time are required for this return option." },
       { status: 400 },
     );
   }
@@ -60,16 +60,28 @@ export async function POST(request: Request) {
   const outboundDistanceKm = outboundGoogleDistance
     ? Math.round(outboundGoogleDistance.distanceKm * 10) / 10
     : input.distanceKm;
+  if (!outboundDistanceKm) {
+    return NextResponse.json(
+      { error: "We could not verify the route distance. Please confirm both addresses or call (519) 933-5090." },
+      { status: 400 },
+    );
+  }
   const returnDistanceKm = hasReturnLeg
     ? returnGoogleDistance
       ? Math.round(returnGoogleDistance.distanceKm * 10) / 10
       : input.returnDistanceKm ?? outboundDistanceKm
     : null;
+  const isOutOfCity = source === "WEBSITE"
+    ? ![input.pickupAddress, input.dropoffAddress].every((address) => /\blondon\b/i.test(address))
+    : input.isOutOfCity;
+  const oxygenRequirement = input.oxygenRequirement === "NO" && input.requiresOxygen ? "YES" : input.oxygenRequirement;
+  const isolationRequirement = input.isolationRequirement === "NO" && input.requiresIsolation ? "YES" : input.isolationRequirement;
+  const dnrRequirement = input.dnrRequirement === "NO" && input.hasDnr ? "YES" : input.dnrRequirement;
   const fareInputBase = {
     mobilityType: input.mobilityType as MobilityType,
     isBariatric: input.isBariatric,
-    isOutOfCity: input.isOutOfCity,
-    requiresOxygen: input.requiresOxygen,
+    isOutOfCity,
+    requiresOxygen: oxygenRequirement === "YES",
     extraAttendant: input.extraAttendant,
     extraAttendantHours: input.extraAttendantHours,
   };
@@ -173,11 +185,13 @@ export async function POST(request: Request) {
         pickupAddress: input.pickupAddress,
         pickupLat: input.pickupLat,
         pickupLng: input.pickupLng,
+        pickupFacilityName: input.pickupFacilityName,
         pickupDepartment: input.pickupDepartment,
         pickupRoom: input.pickupRoom,
         dropoffAddress: input.dropoffAddress,
         dropoffLat: input.dropoffLat,
         dropoffLng: input.dropoffLng,
+        dropoffFacilityName: input.dropoffFacilityName,
         dropoffDepartment: input.dropoffDepartment,
         dropoffRoom: input.dropoffRoom,
         scheduledAt: input.scheduledAt,
@@ -185,11 +199,18 @@ export async function POST(request: Request) {
         returnTripType,
         mobilityType: input.mobilityType,
         isBariatric: input.isBariatric,
-        isOutOfCity: input.isOutOfCity,
+        isOutOfCity,
         passengerWeightKg: input.passengerWeightKg,
-        requiresOxygen: input.requiresOxygen,
-        requiresIsolation: input.requiresIsolation,
-        hasDnr: input.hasDnr,
+        requiresOxygen: oxygenRequirement === "YES",
+        oxygenRequirement,
+        oxygenLitresPerMinute: oxygenRequirement === "YES" ? input.oxygenLitresPerMinute : null,
+        requiresIsolation: isolationRequirement === "YES",
+        isolationRequirement,
+        isolationDetails: isolationRequirement === "YES" ? input.isolationDetails : null,
+        hasDnr: dnrRequirement === "YES",
+        dnrRequirement,
+        hasBelongings: input.hasBelongings,
+        belongingsDescription: input.hasBelongings ? input.belongingsDescription : null,
         escortCount: input.escortCount,
         paymentPreference: input.paymentPreference,
         medicalDocumentsAvailable: input.medicalDocumentsAvailable,
@@ -226,11 +247,13 @@ export async function POST(request: Request) {
           pickupAddress: input.dropoffAddress,
           pickupLat: input.dropoffLat,
           pickupLng: input.dropoffLng,
+          pickupFacilityName: input.dropoffFacilityName,
           pickupDepartment: input.dropoffDepartment,
           pickupRoom: input.dropoffRoom,
           dropoffAddress: input.pickupAddress,
           dropoffLat: input.pickupLat,
           dropoffLng: input.pickupLng,
+          dropoffFacilityName: input.pickupFacilityName,
           dropoffDepartment: input.pickupDepartment,
           dropoffRoom: input.pickupRoom,
           scheduledAt: input.returnScheduledAt,
@@ -238,11 +261,18 @@ export async function POST(request: Request) {
           returnTripType,
           mobilityType: input.mobilityType,
           isBariatric: input.isBariatric,
-          isOutOfCity: input.isOutOfCity,
+          isOutOfCity,
           passengerWeightKg: input.passengerWeightKg,
-          requiresOxygen: input.requiresOxygen,
-          requiresIsolation: input.requiresIsolation,
-          hasDnr: input.hasDnr,
+          requiresOxygen: oxygenRequirement === "YES",
+          oxygenRequirement,
+          oxygenLitresPerMinute: oxygenRequirement === "YES" ? input.oxygenLitresPerMinute : null,
+          requiresIsolation: isolationRequirement === "YES",
+          isolationRequirement,
+          isolationDetails: isolationRequirement === "YES" ? input.isolationDetails : null,
+          hasDnr: dnrRequirement === "YES",
+          dnrRequirement,
+          hasBelongings: input.hasBelongings,
+          belongingsDescription: input.hasBelongings ? input.belongingsDescription : null,
           escortCount: input.escortCount,
           paymentPreference: input.paymentPreference,
           medicalDocumentsAvailable: input.medicalDocumentsAvailable,
@@ -301,7 +331,7 @@ export async function POST(request: Request) {
         pickupAddress: input.pickupAddress,
         dropoffAddress: input.dropoffAddress,
         scheduledAt: input.scheduledAt,
-        estimatedFare: totalFare,
+        estimatedFare: source === "WEBSITE" ? null : totalFare,
         portalUrl,
       }),
     }),

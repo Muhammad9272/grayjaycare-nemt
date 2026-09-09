@@ -36,6 +36,7 @@ export default function Footer() {
                     Drive with us
                   </Link>
                 </li>
+                <li><Link href="/careers" className="hover:text-foreground">Careers</Link></li>
                 <li>
                   <Link href="/login" className="hover:text-foreground">
                     Hospital sign in

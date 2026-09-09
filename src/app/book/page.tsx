@@ -10,11 +10,13 @@ import AddressAutocomplete, { type ResolvedPlace } from "@/components/AddressAut
 import LongDateInput from "@/components/LongDateInput";
 import { serviceDateTimeInputValue, torontoLocalDateTimeToIso } from "@/lib/dates";
 import styles from "./booking.module.css";
+import TidioChat from "@/components/TidioChat";
 
 type MobilityType = "AMBULATORY" | "WHEELCHAIR" | "STRETCHER";
 type PickupTimePreference = "SPECIFIC" | "ASAP" | "FLEXIBLE";
 type ReturnTripType = "ONE_WAY" | "SCHEDULED_RETURN" | "WAIT_AND_RETURN" | "CALL_FOR_RETURN";
-type PaymentPreference = "CASH" | "CARD" | "E_TRANSFER" | "DIRECT_DEPOSIT" | "INVOICE" | "OTHER";
+type PaymentPreference = "CASH" | "CARD" | "E_TRANSFER" | "INVOICE" | "INSURANCE" | "OPGT" | "OTHER";
+type RequirementAnswer = "NO" | "YES" | "NOT_SURE";
 type BookingChannel = "PUBLIC" | "PHONE" | "HOSPITAL";
 
 type Breakdown = {
@@ -38,10 +40,10 @@ type QuoteResponse = {
   message?: string;
 };
 
-const SERVICE_OPTIONS: { value: MobilityType; title: string; copy: string; rate: string }[] = [
-  { value: "AMBULATORY", title: "Ambulatory", copy: "Walk-on passenger with caring assistance", rate: "Wheelchair rate" },
-  { value: "WHEELCHAIR", title: "Wheelchair", copy: "Accessible van and securement support", rate: "From $50" },
-  { value: "STRETCHER", title: "Stretcher", copy: "Specialized transfer with trained attendants", rate: "From $120" },
+const SERVICE_OPTIONS: { value: MobilityType; title: string; copy: string }[] = [
+  { value: "AMBULATORY", title: "Ambulatory", copy: "Walk-on passenger with caring assistance" },
+  { value: "WHEELCHAIR", title: "Wheelchair", copy: "Accessible van and securement support" },
+  { value: "STRETCHER", title: "Stretcher", copy: "Specialized transfer with trained attendants" },
 ];
 
 export default function BookPage() {
@@ -61,24 +63,30 @@ function BookingPageContent() {
   const [pickupPlace, setPickupPlace] = useState<ResolvedPlace | null>(null);
   const [pickupDepartment, setPickupDepartment] = useState("");
   const [pickupRoom, setPickupRoom] = useState("");
+  const [pickupFacilityName, setPickupFacilityName] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
   const [dropoffPlace, setDropoffPlace] = useState<ResolvedPlace | null>(null);
   const [dropoffDepartment, setDropoffDepartment] = useState("");
   const [dropoffRoom, setDropoffRoom] = useState("");
+  const [dropoffFacilityName, setDropoffFacilityName] = useState("");
   const [manualDistanceKm, setManualDistanceKm] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [pickupTimePreference, setPickupTimePreference] = useState<PickupTimePreference>("SPECIFIC");
   const [mobilityType, setMobilityType] = useState<MobilityType>("AMBULATORY");
   const [isOutOfCity, setIsOutOfCity] = useState(false);
   const [isBariatric, setIsBariatric] = useState(false);
-  const [requiresOxygen, setRequiresOxygen] = useState(false);
-  const [requiresIsolation, setRequiresIsolation] = useState(false);
-  const [hasDnr, setHasDnr] = useState(false);
+  const [oxygenRequirement, setOxygenRequirement] = useState<RequirementAnswer>("NO");
+  const [oxygenLitresPerMinute, setOxygenLitresPerMinute] = useState("");
+  const [isolationRequirement, setIsolationRequirement] = useState<RequirementAnswer>("NO");
+  const [isolationDetails, setIsolationDetails] = useState("");
+  const [dnrRequirement, setDnrRequirement] = useState<RequirementAnswer>("NO");
+  const [hasBelongings, setHasBelongings] = useState(false);
+  const [belongingsDescription, setBelongingsDescription] = useState("");
   const [escortCount, setEscortCount] = useState("0");
   const [extraAttendant, setExtraAttendant] = useState(false);
   const [extraAttendantHours, setExtraAttendantHours] = useState("1");
   const [waitMinutes, setWaitMinutes] = useState("0");
-  const [passengerWeightKg, setPassengerWeightKg] = useState("");
+  const [passengerWeightLb, setPassengerWeightLb] = useState("");
   const [notes, setNotes] = useState("");
   const [returnTripType, setReturnTripType] = useState<ReturnTripType>("ONE_WAY");
   const [returnScheduledAt, setReturnScheduledAt] = useState("");
@@ -97,7 +105,6 @@ function BookingPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{
     referenceCode: string;
-    estimatedFare: number;
     emailSent: boolean;
   } | null>(null);
   const [minimumPickupTime] = useState(() => serviceDateTimeInputValue(new Date(Date.now() + 5 * 60_000)));
@@ -122,7 +129,7 @@ function BookingPageContent() {
     mobilityType,
     isBariatric,
     isOutOfCity,
-    requiresOxygen,
+    requiresOxygen: oxygenRequirement === "YES",
     extraAttendant,
     extraAttendantHours: extraAttendant ? Number(extraAttendantHours || 0) : 0,
   };
@@ -162,7 +169,7 @@ function BookingPageContent() {
     mobilityType,
     isBariatric,
     isOutOfCity,
-    requiresOxygen,
+    oxygenRequirement,
     extraAttendant,
     extraAttendantHours,
     scheduledAt,
@@ -204,7 +211,7 @@ function BookingPageContent() {
     mobilityType,
     isBariatric,
     isOutOfCity,
-    requiresOxygen,
+    oxygenRequirement,
     extraAttendant,
     extraAttendantHours,
     returnScheduledAt,
@@ -218,7 +225,7 @@ function BookingPageContent() {
     setError(null);
 
     const distanceKm = manualDistanceKm ? Number(manualDistanceKm) : quote?.distanceKm;
-    if (!distanceKm) {
+    if (!distanceKm && bookingChannel !== "PUBLIC") {
       setError("We couldn't determine the trip distance. Please enter an estimated distance in kilometres.");
       return;
     }
@@ -244,22 +251,29 @@ function BookingPageContent() {
           guestPhone,
           contactPhoneExtension: contactPhoneExtension || undefined,
           medicalRecordNumber: medicalRecordNumber || undefined,
+          pickupFacilityName: pickupFacilityName || undefined,
           pickupDepartment: pickupDepartment || undefined,
           pickupRoom: pickupRoom || undefined,
           dropoffDepartment: dropoffDepartment || undefined,
+          dropoffFacilityName: dropoffFacilityName || undefined,
           dropoffRoom: dropoffRoom || undefined,
           pickupTimePreference,
           returnTripType,
           escortCount: Number(escortCount),
-          requiresIsolation,
-          hasDnr,
+          oxygenRequirement,
+          oxygenLitresPerMinute: oxygenRequirement === "YES" ? Number(oxygenLitresPerMinute) : undefined,
+          isolationRequirement,
+          isolationDetails: isolationRequirement === "YES" ? isolationDetails : undefined,
+          dnrRequirement,
+          hasBelongings,
+          belongingsDescription: hasBelongings ? belongingsDescription : undefined,
           paymentPreference: paymentPreference || undefined,
           medicalDocumentsAvailable,
-          passengerWeightKg: passengerWeightKg ? Number(passengerWeightKg) : undefined,
+          passengerWeightKg: passengerWeightLb ? Math.round(Number(passengerWeightLb) * 0.453592) : undefined,
           notes: notes || undefined,
           isRoundTrip,
           returnScheduledAt: hasReturnLeg ? torontoLocalDateTimeToIso(returnScheduledAt) : undefined,
-          returnDistanceKm: hasReturnLeg ? distanceKm : undefined,
+          returnDistanceKm: hasReturnLeg && distanceKm ? distanceKm : undefined,
         }),
       });
       if (!res.ok) {
@@ -296,7 +310,6 @@ function BookingPageContent() {
 
       setConfirmation({
         referenceCode: data.referenceCode,
-        estimatedFare: data.estimatedFare,
         emailSent: Boolean(data.emailSent),
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -326,7 +339,7 @@ function BookingPageContent() {
             </p>
             <div className={styles.confirmationDetails}>
               <span><small>Booking reference</small><strong>{confirmation.referenceCode}</strong></span>
-              <span><small>Estimated fare</small><strong>${confirmation.estimatedFare.toFixed(2)}</strong></span>
+              <span><small>Next step</small><strong>Dispatcher confirmation</strong></span>
             </div>
             <div className={styles.confirmationActions}>
               <Link href="/" className={styles.secondaryButton}>Back to home</Link>
@@ -335,6 +348,7 @@ function BookingPageContent() {
           </div>
         </main>
         <Footer />
+        <TidioChat />
       </>
     );
   }
@@ -357,12 +371,11 @@ function BookingPageContent() {
             <p className={styles.eyebrow}>24/7 non-emergency medical transport</p>
             <h1>Book a safe, caring ride</h1>
             <p className={styles.heroDescription}>
-              Tell us what your passenger needs and receive a live estimate based on Gray Jay Care&apos;s approved
-              2026 price list.
+              Tell us what the passenger needs. Our dispatcher will review the request and contact you to confirm the ride.
             </p>
             <div className={styles.trustRow}>
               <span><CheckIcon /> No account required</span>
-              <span><CheckIcon /> Live fare estimate</span>
+              <span><CheckIcon /> Simple request process</span>
               <span><CheckIcon /> Dispatcher confirmation</span>
             </div>
           </div>
@@ -400,157 +413,82 @@ function BookingPageContent() {
             </section>
 
             <section className={styles.sectionCard}>
-              <SectionHeader number="02" title="Trip details" copy="Where and when should we meet the patient?" />
-              <div className={styles.formGrid}>
-                <label className={`${styles.field} ${styles.fullField}`}>
-                  <span>Pickup address</span>
-                  <AddressAutocomplete
-                    inputClassName={styles.input}
-                    value={pickupAddress}
-                    onChange={setPickupAddress}
-                    onPlaceResolved={setPickupPlace}
-                    placeholder="123 Main St, London, ON"
-                    required
-                  />
-                </label>
-                <label className={styles.field}>
-                  <span>Pickup department <small>(if hospital/facility)</small></span>
-                  <input className={styles.input} value={pickupDepartment} onChange={(event) => setPickupDepartment(event.target.value)} placeholder="e.g. Endoscopy Unit" />
-                </label>
-                <label className={styles.field}>
-                  <span>Pickup room <small>(optional)</small></span>
-                  <input className={styles.input} value={pickupRoom} onChange={(event) => setPickupRoom(event.target.value)} placeholder="e.g. Room 200" />
-                </label>
-                <label className={`${styles.field} ${styles.fullField}`}>
-                  <span>Drop-off address</span>
-                  <AddressAutocomplete
-                    inputClassName={styles.input}
-                    value={dropoffAddress}
-                    onChange={setDropoffAddress}
-                    onPlaceResolved={setDropoffPlace}
-                    placeholder="Hospital, clinic or home address"
-                    required
-                  />
-                </label>
-                <label className={styles.field}>
-                  <span>Drop-off department <small>(if hospital/facility)</small></span>
-                  <input className={styles.input} value={dropoffDepartment} onChange={(event) => setDropoffDepartment(event.target.value)} placeholder="e.g. Imaging" />
-                </label>
-                <label className={styles.field}>
-                  <span>Drop-off room <small>(optional)</small></span>
-                  <input className={styles.input} value={dropoffRoom} onChange={(event) => setDropoffRoom(event.target.value)} placeholder="e.g. Room 310" />
-                </label>
-                <div className={`${styles.field} ${styles.fullField}`}>
-                  <span>Pickup date and time</span>
-                  <LongDateInput includeTime min={minimumPickupTime} ariaLabel="Pickup date and time" controlClassName={styles.input} value={scheduledAt} onChange={setScheduledAt} required />
-                </div>
-                <label className={styles.field}>
-                  <span>Preferred timing</span>
-                  <select className={styles.input} value={pickupTimePreference} onChange={(event) => setPickupTimePreference(event.target.value as PickupTimePreference)}>
-                    <option value="SPECIFIC">Specific time</option>
-                    <option value="ASAP">First available (ASAP)</option>
-                    <option value="FLEXIBLE">Any time that day</option>
-                  </select>
-                </label>
-                <div className={styles.field}>
-                  <span>Service area</span>
-                  <div className={styles.segmentedControl}>
-                    <button type="button" className={!isOutOfCity ? styles.segmentActive : ""} onClick={() => setIsOutOfCity(false)}>London</button>
-                    <button type="button" className={isOutOfCity ? styles.segmentActive : ""} onClick={() => setIsOutOfCity(true)}>Outside London</button>
-                  </div>
-                </div>
-                <fieldset className={`${styles.field} ${styles.fullField}`}>
-                  <legend>Choose service type</legend>
-                  <div className={styles.serviceGrid}>
-                    {SERVICE_OPTIONS.map((option) => (
-                      <label key={option.value} className={`${styles.serviceChoice} ${mobilityType === option.value ? styles.choiceActive : ""}`}>
-                        <input type="radio" name="mobilityType" value={option.value} checked={mobilityType === option.value} onChange={() => setMobilityType(option.value)} />
-                        <span className={styles.radioMark} />
-                        <strong>{option.title}</strong>
-                        <small>{option.copy}</small>
-                        <em>{option.rate}</em>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                <div className={`${styles.roundTripBox} ${styles.fullField}`}>
-                  <label className={styles.field}>
-                    <span>One-way or return trip?</span>
-                    <select className={styles.input} value={returnTripType} onChange={(event) => setReturnTripType(event.target.value as ReturnTripType)}>
-                      <option value="ONE_WAY">One-way trip</option>
-                      <option value="SCHEDULED_RETURN">Return at a scheduled time</option>
-                      <option value="WAIT_AND_RETURN">Wait and return</option>
-                      <option value="CALL_FOR_RETURN">Call when ready for return</option>
-                    </select>
-                    <small>Scheduled return legs receive the approved return-trip discount.</small>
-                  </label>
-                  {hasReturnLeg && (
-                    <div className={styles.field}>
-                      <span>Return pickup date and time</span>
-                      <LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} required />
-                    </div>
-                  )}
-                </div>
-                {readyForQuote && quote && quote.distanceKm == null && (
-                  <label className={`${styles.field} ${styles.fullField}`}>
-                    <span>Estimated trip distance (km)</span>
-                    <small>Automatic distance lookup is unavailable. Enter the approximate one-way distance.</small>
-                    <input type="number" min="0.1" step="0.1" className={styles.input} value={manualDistanceKm} onChange={(event) => setManualDistanceKm(event.target.value)} required />
-                  </label>
-                )}
-              </div>
-            </section>
-
-            <section className={styles.sectionCard}>
-              <SectionHeader number="03" title="Patient information" copy="Help us prepare the right vehicle and care team." />
+              <SectionHeader number="02" title="Patient information" copy="Tell us who will be travelling and what support they may need." />
               <div className={styles.formGrid}>
                 <label className={styles.field}>
                   <span>Patient&apos;s full name</span>
                   <input className={styles.input} value={patientName} onChange={(event) => setPatientName(event.target.value)} required />
                 </label>
                 <label className={styles.field}>
-                  <span>Medical record number (MRN) <small>(optional)</small></span>
+                  <span>Medical record number (MRN) <small>{paymentPreference === "INVOICE" ? "(required for hospital billing)" : "(optional)"}</small></span>
                   <input className={styles.input} value={medicalRecordNumber} onChange={(event) => setMedicalRecordNumber(event.target.value)} autoComplete="off" />
                 </label>
-              </div>
-              <div className={styles.optionGrid}>
-                <label className={`${styles.optionCard} ${isBariatric ? styles.optionActive : ""}`}>
-                  <input type="checkbox" checked={isBariatric} onChange={(event) => setIsBariatric(event.target.checked)} />
-                  <OptionIcon type="care" />
-                  <span><strong>Over 250 lb / bariatric</strong><small>Specialized equipment and support</small></span>
+                <label className={styles.field}>
+                  <span>Is the patient under 250 lb / 113 kg?</span>
+                  <select className={styles.input} value={isBariatric ? "NO" : "YES"} onChange={(event) => setIsBariatric(event.target.value === "NO")}>
+                    <option value="YES">Yes</option>
+                    <option value="NO">No</option>
+                  </select>
                 </label>
-                <label className={`${styles.optionCard} ${requiresOxygen ? styles.optionActive : ""}`}>
-                  <input type="checkbox" checked={requiresOxygen} onChange={(event) => setRequiresOxygen(event.target.checked)} />
-                  <OptionIcon type="oxygen" />
-                  <span><strong>Oxygen required</strong><small>Oxygen available during transport</small></span>
-                </label>
-                <label className={`${styles.optionCard} ${extraAttendant ? styles.optionActive : ""}`}>
-                  <input type="checkbox" checked={extraAttendant} onChange={(event) => setExtraAttendant(event.target.checked)} />
-                  <OptionIcon type="person" />
-                  <span><strong>Extra attendant</strong><small>Additional hands-on assistance</small></span>
-                </label>
-              </div>
-              <div className={`${styles.formGrid} ${styles.spacedGrid}`}>
+                {isBariatric && <label className={styles.field}>
+                  <span>Approximate patient weight (lb)</span>
+                  <input type="number" min="251" max="2200" className={styles.input} value={passengerWeightLb} onChange={(event) => setPassengerWeightLb(event.target.value)} required />
+                </label>}
                 <label className={styles.field}>
                   <span>People escorting the patient</span>
                   <select className={styles.input} value={escortCount} onChange={(event) => setEscortCount(event.target.value)}>
                     {[0, 1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}</option>)}
                   </select>
                 </label>
-                <label className={styles.field}>
-                  <span>Isolation precautions?</span>
-                  <select className={styles.input} value={requiresIsolation ? "yes" : "no"} onChange={(event) => setRequiresIsolation(event.target.value === "yes")}>
-                    <option value="no">No</option>
-                    <option value="yes">Yes</option>
-                  </select>
-                </label>
-                <label className={styles.field}>
-                  <span>DNR paperwork available?</span>
-                  <select className={styles.input} value={hasDnr ? "yes" : "no"} onChange={(event) => setHasDnr(event.target.value === "yes")}>
-                    <option value="no">No</option>
-                    <option value="yes">Yes</option>
-                  </select>
-                </label>
+              </div>
+            </section>
+
+            <section className={styles.sectionCard}>
+              <SectionHeader number="03" title="Trip details" copy="Where and when should we meet the patient?" />
+              <div className={styles.formGrid}>
+                <label className={`${styles.field} ${styles.fullField}`}><span>Pickup address</span><AddressAutocomplete inputClassName={styles.input} value={pickupAddress} onChange={setPickupAddress} onPlaceResolved={setPickupPlace} placeholder="123 Main St, London, ON" required /></label>
+                <label className={styles.field}><span>Pickup facility / hospital name <small>(optional)</small></span><input className={styles.input} value={pickupFacilityName} onChange={(event) => setPickupFacilityName(event.target.value)} /></label>
+                <label className={styles.field}><span>Pickup department <small>(optional)</small></span><input className={styles.input} value={pickupDepartment} onChange={(event) => setPickupDepartment(event.target.value)} placeholder="e.g. Endoscopy Unit" /></label>
+                <label className={styles.field}><span>Pickup room <small>(optional)</small></span><input className={styles.input} value={pickupRoom} onChange={(event) => setPickupRoom(event.target.value)} placeholder="e.g. Room 200" /></label>
+                <label className={`${styles.field} ${styles.fullField}`}><span>Drop-off address</span><AddressAutocomplete inputClassName={styles.input} value={dropoffAddress} onChange={setDropoffAddress} onPlaceResolved={setDropoffPlace} placeholder="Hospital, clinic or home address" required /></label>
+                <label className={styles.field}><span>Drop-off facility / hospital name <small>(optional)</small></span><input className={styles.input} value={dropoffFacilityName} onChange={(event) => setDropoffFacilityName(event.target.value)} /></label>
+                <label className={styles.field}><span>Drop-off department <small>(optional)</small></span><input className={styles.input} value={dropoffDepartment} onChange={(event) => setDropoffDepartment(event.target.value)} placeholder="e.g. Imaging" /></label>
+                <label className={styles.field}><span>Drop-off room <small>(optional)</small></span><input className={styles.input} value={dropoffRoom} onChange={(event) => setDropoffRoom(event.target.value)} placeholder="e.g. Room 310" /></label>
+                <div className={`${styles.field} ${styles.fullField}`}><span>Pickup date and time</span><LongDateInput includeTime min={minimumPickupTime} ariaLabel="Pickup date and time" controlClassName={styles.input} value={scheduledAt} onChange={setScheduledAt} required /></div>
+                <div className={`${styles.roundTripBox} ${styles.fullField}`}>
+                  <label className={styles.field}><span>One-way or return trip?</span><select className={styles.input} value={returnTripType} onChange={(event) => { const nextType = event.target.value as ReturnTripType; setReturnTripType(nextType); if (nextType === "WAIT_AND_RETURN" && waitMinutes === "0") setWaitMinutes("60"); }}><option value="ONE_WAY">One-way trip</option><option value="WAIT_AND_RETURN">Wait with the patient and return</option><option value="SCHEDULED_RETURN">Drop off and return later</option><option value="CALL_FOR_RETURN">No wait — call when ready</option></select></label>
+                  {hasReturnLeg && <div className={styles.field}><span>{returnTripType === "WAIT_AND_RETURN" ? "Expected return time" : "Estimated return pickup date and time"}</span><LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} required /></div>}
+                  {returnTripType === "WAIT_AND_RETURN" && <label className={styles.field}><span>How long should we wait?</span><select className={styles.input} value={waitMinutes} onChange={(event) => setWaitMinutes(event.target.value)}>{[30, 60, 90, 120, 180, 240, 360, 480, 600, 720].map((minutes) => <option key={minutes} value={minutes}>{minutes < 60 ? "30 minutes" : `${minutes / 60} hour${minutes === 60 ? "" : "s"}`}</option>)}</select></label>}
+                </div>
+                {bookingChannel !== "PUBLIC" && <>
+                  <label className={styles.field}><span>Preferred timing</span><select className={styles.input} value={pickupTimePreference} onChange={(event) => setPickupTimePreference(event.target.value as PickupTimePreference)}><option value="SPECIFIC">Specific time</option><option value="ASAP">First available (ASAP)</option><option value="FLEXIBLE">Any time that day</option></select></label>
+                  <label className={styles.field}><span>Service area</span><select className={styles.input} value={isOutOfCity ? "out" : "in"} onChange={(event) => setIsOutOfCity(event.target.value === "out")}><option value="in">Within London</option><option value="out">Outside London</option></select></label>
+                </>}
+                {bookingChannel !== "PUBLIC" && readyForQuote && quote && quote.distanceKm == null && <label className={`${styles.field} ${styles.fullField}`}><span>Estimated trip distance (km)</span><input type="number" min="0.1" step="0.1" className={styles.input} value={manualDistanceKm} onChange={(event) => setManualDistanceKm(event.target.value)} required /></label>}
+              </div>
+            </section>
+
+            <section className={styles.sectionCard}>
+              <SectionHeader number="04" title="Transportation type" copy="Choose the vehicle and assistance best suited to the passenger." />
+              <fieldset className={styles.field}><legend>Transportation type</legend><div className={styles.serviceGrid}>{SERVICE_OPTIONS.map((option) => <label key={option.value} className={`${styles.serviceChoice} ${mobilityType === option.value ? styles.choiceActive : ""}`}><input type="radio" name="mobilityType" value={option.value} checked={mobilityType === option.value} onChange={() => setMobilityType(option.value)} /><span className={styles.radioMark} /><strong>{option.title}</strong><small>{option.copy}</small></label>)}</div></fieldset>
+              <label className={`${styles.optionCard} ${isBariatric ? styles.optionActive : ""}`}><input type="checkbox" checked={isBariatric} onChange={(event) => setIsBariatric(event.target.checked)} /><OptionIcon type="care" /><span><strong>Bariatric / special assistance</strong><small>Specialized equipment and additional support</small></span></label>
+              {bookingChannel !== "PUBLIC" && <label className={`${styles.optionCard} ${extraAttendant ? styles.optionActive : ""}`}><input type="checkbox" checked={extraAttendant} onChange={(event) => setExtraAttendant(event.target.checked)} /><OptionIcon type="person" /><span><strong>Extra attendant</strong><small>Internal dispatch option</small></span></label>}
+            </section>
+
+            <section className={styles.sectionCard}>
+              <SectionHeader number="05" title="Passenger requirements" copy="These answers help the care team prepare safely." />
+              <div className={styles.formGrid}>
+                <RequirementSelect label="Is oxygen required?" value={oxygenRequirement} onChange={setOxygenRequirement} styles={styles} />
+                {oxygenRequirement === "YES" && <label className={styles.field}><span>Oxygen flow rate (LPM)</span><input type="number" min="0.1" max="30" step="0.1" className={styles.input} value={oxygenLitresPerMinute} onChange={(event) => setOxygenLitresPerMinute(event.target.value)} required /></label>}
+                <RequirementSelect label="Are isolation precautions required?" value={isolationRequirement} onChange={setIsolationRequirement} styles={styles} />
+                {isolationRequirement === "YES" && <label className={styles.field}><span>Isolation type / precautions</span><input className={styles.input} value={isolationDetails} onChange={(event) => setIsolationDetails(event.target.value)} placeholder="e.g. contact, droplet, flu, COVID-19" required /></label>}
+                <RequirementSelect label="Is DNR paperwork available?" value={dnrRequirement} onChange={setDnrRequirement} styles={styles} />
+              </div>
+            </section>
+
+            <section className={styles.sectionCard}>
+              <SectionHeader number="06" title="Payment" copy="Select how this transportation request will be billed." />
+              <div className={styles.formGrid}>
                 <label className={styles.field}>
                   <span>Payment preference</span>
                   <select className={styles.input} value={paymentPreference} onChange={(event) => setPaymentPreference(event.target.value as PaymentPreference)} required>
@@ -558,24 +496,11 @@ function BookingPageContent() {
                     <option value="CARD">Debit / credit card</option>
                     <option value="CASH">Cash</option>
                     <option value="E_TRANSFER">E-transfer</option>
-                    <option value="DIRECT_DEPOSIT">Direct deposit</option>
-                    <option value="INVOICE">Invoice / account</option>
+                    <option value="INVOICE">Direct billing / account</option>
+                    <option value="INSURANCE">Insurance</option>
+                    <option value="OPGT">OPGT</option>
                     <option value="OTHER">Other</option>
                   </select>
-                </label>
-                <label className={styles.field}>
-                  <span>Expected waiting time</span>
-                  <span className={styles.inputWithSuffix}>
-                    <input type="number" min="0" className={styles.input} value={waitMinutes} onChange={(event) => setWaitMinutes(event.target.value)} />
-                    <b>minutes</b>
-                  </span>
-                </label>
-                <label className={styles.field}>
-                  <span>Passenger weight <small>(optional)</small></span>
-                  <span className={styles.inputWithSuffix}>
-                    <input type="number" min="0" className={styles.input} value={passengerWeightKg} onChange={(event) => setPassengerWeightKg(event.target.value)} />
-                    <b>kg</b>
-                  </span>
                 </label>
                 {extraAttendant && (
                   <label className={styles.field}>
@@ -586,13 +511,21 @@ function BookingPageContent() {
                     </span>
                   </label>
                 )}
+              </div>
+            </section>
+
+            <section className={styles.sectionCard}>
+              <SectionHeader number="07" title="Belongings and notes" copy="Share anything the transport team should know before arrival." />
+              <div className={styles.formGrid}>
+                <label className={styles.field}><span>Will the patient have belongings?</span><select className={styles.input} value={hasBelongings ? "YES" : "NO"} onChange={(event) => setHasBelongings(event.target.value === "YES")}><option value="NO">No</option><option value="YES">Yes</option></select></label>
+                {hasBelongings && <label className={styles.field}><span>Describe the belongings</span><input className={styles.input} value={belongingsDescription} onChange={(event) => setBelongingsDescription(event.target.value)} placeholder="e.g. wheelchair, two bags, walker" required /></label>}
                 <label className={`${styles.optionCard} ${styles.fullField} ${medicalDocumentsAvailable ? styles.optionActive : ""}`}>
                   <input type="checkbox" checked={medicalDocumentsAvailable} onChange={(event) => setMedicalDocumentsAvailable(event.target.checked)} />
                   <OptionIcon type="care" />
                   <span><strong>Medical documents are available</strong><small>For privacy, dispatch will arrange secure collection; do not email sensitive documents.</small></span>
                 </label>
                 <label className={`${styles.field} ${styles.fullField}`}>
-                  <span>Driver or dispatcher notes <small>(optional)</small></span>
+                  <span>Additional notes <small>(optional)</small></span>
                   <textarea className={styles.input} rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Entrance instructions, appointment details, transfer assistance or anything else we should know." />
                 </label>
               </div>
@@ -602,22 +535,27 @@ function BookingPageContent() {
           <aside className={styles.summaryColumn}>
             <div className={styles.fareCard} aria-live="polite">
               <div className={styles.fareHeader}>
-                <span><small>Live estimate</small><strong>Your trip fare</strong></span>
-                <b>2026 rates</b>
+                <span><small>{bookingChannel === "PUBLIC" ? "Final step" : "Live estimate"}</small><strong>{bookingChannel === "PUBLIC" ? "Send your request" : "Your trip fare"}</strong></span>
+                <b>{bookingChannel === "PUBLIC" ? "24/7" : "2026 rates"}</b>
               </div>
               <div className={styles.fareBody}>
-                {quoteLoading && <LoadingFare />}
-                {!quoteLoading && !readyForQuote && (
+                {bookingChannel === "PUBLIC" ? (
+                  <div className={styles.emptyFare}>
+                    <CheckIcon />
+                    <strong>We&apos;ll take it from here</strong>
+                    <p>A dispatcher will review your details, confirm availability, and contact you directly.</p>
+                  </div>
+                ) : quoteLoading ? <LoadingFare /> : !readyForQuote ? (
                   <div className={styles.emptyFare}>
                     <FareIcon />
                     <strong>Ready when you are</strong>
                     <p>Add the addresses and pickup time to calculate your estimate.</p>
                   </div>
-                )}
-                {!quoteLoading && readyForQuote && quote?.message && (
+                ) : null}
+                {bookingChannel !== "PUBLIC" && !quoteLoading && readyForQuote && quote?.message && (
                   <p className={styles.quoteMessage}>{quote.message}</p>
                 )}
-                {!quoteLoading && quote?.breakdown && (
+                {bookingChannel !== "PUBLIC" && !quoteLoading && quote?.breakdown && (
                   <div className={styles.fareBreakdown}>
                     {quote.distanceKm && (
                       <div className={styles.distancePill}>
@@ -640,11 +578,11 @@ function BookingPageContent() {
                 <button type="submit" disabled={submitting} className={styles.submitButton}>
                   {submitting ? "Sending your request..." : "Request this booking"}
                 </button>
-                <p className={styles.consent}>Submitting this form requests non-emergency transportation. A dispatcher will contact you to confirm availability and final pricing. For a medical emergency, call 911.</p>
+                <p className={styles.consent}>Submitting this form requests non-emergency transportation. A dispatcher will contact you to confirm {bookingChannel === "PUBLIC" ? "availability and trip details" : "availability and final pricing"}. For a medical emergency, call 911.</p>
               </div>
             </div>
 
-            <div className={styles.policyCard}>
+            {bookingChannel !== "PUBLIC" && <div className={styles.policyCard}>
               <h3>Important fare notes</h3>
               <ul>
                 <li><span>$50</span> weekend, night or holiday charge</li>
@@ -653,11 +591,11 @@ function BookingPageContent() {
                 <li><span>$120</span> late cancellation / no-show fee</li>
               </ul>
               <p>Visa, credit card, direct deposit and cash are accepted.</p>
-            </div>
+            </div>}
           </aside>
         </form>
 
-        <section className={styles.rateGuide}>
+        {bookingChannel !== "PUBLIC" && <section className={styles.rateGuide}>
           <div><p className={styles.eyebrow}>2026 pricing at a glance</p><h2>Clear rates, before you ride.</h2></div>
           <div className={styles.rateTiles}>
             <RateTile title="Wheelchair · London" base="$50 base" rate="$2.20/km" />
@@ -665,9 +603,10 @@ function BookingPageContent() {
             <RateTile title="Stretcher" base="$120 base" rate="$3.20/km · $3 after 100 km" />
             <RateTile title="Bariatric support" base="+$100" rate="$3.50/km" />
           </div>
-        </section>
+        </section>}
       </main>
       <Footer />
+      <TidioChat />
     </>
   );
 }
@@ -678,6 +617,19 @@ function SectionHeader({ number, title, copy }: { number: string; title: string;
       <span>{number}</span>
       <div><h2>{title}</h2><p>{copy}</p></div>
     </header>
+  );
+}
+
+function RequirementSelect({ label, value, onChange, styles: fieldStyles }: { label: string; value: RequirementAnswer; onChange: (value: RequirementAnswer) => void; styles: typeof styles }) {
+  return (
+    <label className={fieldStyles.field}>
+      <span>{label}</span>
+      <select className={fieldStyles.input} value={value} onChange={(event) => onChange(event.target.value as RequirementAnswer)}>
+        <option value="NO">No</option>
+        <option value="YES">Yes</option>
+        <option value="NOT_SURE">Not sure</option>
+      </select>
+    </label>
   );
 }
 

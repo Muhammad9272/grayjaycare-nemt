@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { href: "/#about-us", label: "About Us" },
   { href: "/#faq", label: "FAQ" },
   { href: "/#contact", label: "Contact Us" },
+  { href: "/careers", label: "Careers" },
 ];
 
 export default function PublicHeader() {

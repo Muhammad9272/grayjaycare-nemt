@@ -24,7 +24,7 @@ export default defineConfig({
     launchOptions: existsSync(localChrome) ? { executablePath: localChrome } : undefined,
   },
   webServer: usesExternalServer ? undefined : {
-    command: `npm run start -- -p ${port}`,
+    command: `mkdir -p .next-e2e/standalone/public .next-e2e/standalone/.next-e2e/static && cp -R public/. .next-e2e/standalone/public/ && cp -R .next-e2e/static/. .next-e2e/standalone/.next-e2e/static/ && PORT=${port} HOSTNAME=127.0.0.1 node .next-e2e/standalone/server.js`,
     url: `${localBaseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,
