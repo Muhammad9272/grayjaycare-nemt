@@ -537,7 +537,12 @@ function BookingPageContent() {
           </div>
         </section>
 
-        <form onSubmit={handleSubmit} onChange={handleFormChange} className={styles.bookingLayout} noValidate>
+        <form
+          onSubmit={handleSubmit}
+          onChange={handleFormChange}
+          className={`${styles.bookingLayout} ${bookingChannel === "PUBLIC" ? styles.publicBookingLayout : ""}`}
+          noValidate
+        >
           <div className={styles.formColumn}>
             <section className={styles.sectionCard}>
               <SectionHeader number="01" title="Contact information" copy="Who should our dispatcher contact to confirm this booking?" />
@@ -705,30 +710,24 @@ function BookingPageContent() {
             </section>
           </div>
 
-          <aside className={styles.summaryColumn}>
+          {bookingChannel !== "PUBLIC" && <aside className={styles.summaryColumn}>
             <div className={styles.fareCard} aria-live="polite">
               <div className={styles.fareHeader}>
-                <span><small>{bookingChannel === "PUBLIC" ? "Final step" : "Live estimate"}</small><strong>{bookingChannel === "PUBLIC" ? "Send your request" : "Your trip fare"}</strong></span>
-                <b>{bookingChannel === "PUBLIC" ? "24/7" : "2026 rates"}</b>
+                <span><small>Live estimate</small><strong>Your trip fare</strong></span>
+                <b>2026 rates</b>
               </div>
               <div className={styles.fareBody}>
-                {bookingChannel === "PUBLIC" ? (
-                  <div className={styles.emptyFare}>
-                    <CheckIcon />
-                    <strong>We&apos;ll take it from here</strong>
-                    <p>A dispatcher will review your details, confirm availability, and contact you directly.</p>
-                  </div>
-                ) : quoteLoading ? <LoadingFare /> : !readyForQuote ? (
+                {quoteLoading ? <LoadingFare /> : !readyForQuote ? (
                   <div className={styles.emptyFare}>
                     <FareIcon />
                     <strong>Ready when you are</strong>
                     <p>Add the addresses and pickup time to calculate your estimate.</p>
                   </div>
                 ) : null}
-                {bookingChannel !== "PUBLIC" && !quoteLoading && readyForQuote && quote?.message && (
+                {!quoteLoading && readyForQuote && quote?.message && (
                   <p className={styles.quoteMessage}>{quote.message}</p>
                 )}
-                {bookingChannel !== "PUBLIC" && !quoteLoading && quote?.breakdown && (
+                {!quoteLoading && quote?.breakdown && (
                   <div className={styles.fareBreakdown}>
                     {quote.distanceKm && (
                       <div className={styles.distancePill}>
@@ -749,7 +748,7 @@ function BookingPageContent() {
               </div>
             </div>
 
-            {bookingChannel !== "PUBLIC" && <div className={styles.policyCard}>
+            <div className={styles.policyCard}>
               <h3>Important fare notes</h3>
               <ul>
                 <li><span>$50</span> weekend, night or holiday charge</li>
@@ -758,8 +757,8 @@ function BookingPageContent() {
                 <li><span>$120</span> late cancellation / no-show fee</li>
               </ul>
               <p>Visa, credit card, direct deposit and cash are accepted.</p>
-            </div>}
-          </aside>
+            </div>
+          </aside>}
 
           <div className={styles.submitArea}>
             {error && <p ref={errorRef} role="alert" tabIndex={-1} className={styles.error}>{error}</p>}

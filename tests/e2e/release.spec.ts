@@ -399,6 +399,7 @@ test("revised public content, reviews, contact details, and call actions are pre
 test("booking form shows an error below every missing field and submits from the bottom", async ({ page }) => {
   await page.goto("/book");
   const submitButton = page.getByRole("button", { name: "Request this booking" });
+  await expect(page.getByText("Send your request", { exact: true })).toHaveCount(0);
   await submitButton.click();
 
   for (const message of [
@@ -419,10 +420,14 @@ test("booking form shows an error below every missing field and submits from the
   await expect(page.getByLabel("Contact person's full name")).toHaveAttribute("aria-invalid", "true");
 
   const finalSection = page.getByRole("heading", { name: "Belongings and notes" }).locator("xpath=ancestor::section");
-  const [sectionBox, buttonBox] = await Promise.all([finalSection.boundingBox(), submitButton.boundingBox()]);
+  const submitArea = submitButton.locator("xpath=parent::div");
+  const [sectionBox, submitAreaBox, buttonBox] = await Promise.all([finalSection.boundingBox(), submitArea.boundingBox(), submitButton.boundingBox()]);
   expect(sectionBox).not.toBeNull();
+  expect(submitAreaBox).not.toBeNull();
   expect(buttonBox).not.toBeNull();
   expect(buttonBox!.y).toBeGreaterThan(sectionBox!.y + sectionBox!.height);
+  expect(Math.abs(submitAreaBox!.width - sectionBox!.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(buttonBox!.width - (submitAreaBox!.width - 56))).toBeLessThanOrEqual(2);
 
   await page.getByLabel("Does the patient require oxygen during transportation?").selectOption("YES");
   await page.getByLabel("Does the patient have a DNR (Do Not Resuscitate) paperwork?").selectOption("YES");
@@ -500,7 +505,7 @@ test("a public booking creates an account and signs the passenger directly into 
   await page.getByLabel("Will the patient have belongings?").selectOption("YES");
   await page.getByLabel("Describe the belongings").fill("One bag and a walker");
   await expect(page.getByText("Medical documents are available")).toHaveCount(0);
-  await expect(page.getByText("Send your request", { exact: true })).toBeVisible();
+  await expect(page.getByText("Send your request", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Your trip fare", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Request this booking" }).click();
   await expect(page).toHaveURL(/\/portal\?booked=/, { timeout: 30_000 });
@@ -561,7 +566,7 @@ test("public, dispatcher, and hospital entry points use the same complete bookin
       await expect(target.getByText("Live estimate", { exact: true })).toBeVisible();
       await expect(target.getByText("Your trip fare", { exact: true })).toBeVisible();
     } else {
-      await expect(target.getByText("Send your request", { exact: true })).toBeVisible();
+      await expect(target.getByText("Send your request", { exact: true })).toHaveCount(0);
       await expect(target.getByText("Your trip fare", { exact: true })).toHaveCount(0);
     }
   }

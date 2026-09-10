@@ -148,8 +148,8 @@ textarea.input { resize: vertical; }
 .estimatedTotal > strong { color: #922bea; font-family: var(--font-gjc-display), Georgia, serif; font-size: 27px; font-weight: 400; }
 .error { margin: 14px 0 0; padding: 10px 11px; border-radius: 10px; color: #a02e2e; background: #fff0f0; font-size: 11px; line-height: 1.45; }
 .submitArea { grid-column: 1 / -1; padding: 24px 28px; border: 1px solid #dfc8eb; border-radius: 22px; background: white; box-shadow: 0 14px 38px rgba(77, 27, 101, 0.09); text-align: center; }
-.submitArea .error { max-width: 700px; margin: 0 auto 16px; text-align: left; }
-.submitButton { display: block; width: min(100%, 520px); margin: 0 auto; padding: 15px 20px; border-radius: 12px; color: white; background: #922bea; font-size: 14px; font-weight: 850; box-shadow: 0 10px 22px rgba(146, 43, 234, 0.23); }
+.submitArea .error { width: 100%; margin: 0 0 16px; text-align: left; }
+.submitButton { display: block; width: 100%; margin: 0; padding: 15px 20px; border-radius: 12px; color: white; background: #922bea; font-size: 14px; font-weight: 850; box-shadow: 0 10px 22px rgba(146, 43, 234, 0.23); }
 .submitButton:hover { background: #7c1ed2; transform: translateY(-1px); }
 .submitButton:disabled { cursor: wait; opacity: 0.58; transform: none; }
 .consent { margin-top: 11px; color: #716476; font-size: 12px; line-height: 1.5; text-align: center; }
@@ -198,6 +198,7 @@ textarea.input { resize: vertical; }
 
 @media (min-width: 1024px) {
   .bookingLayout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+  .publicBookingLayout { grid-template-columns: minmax(0, 1fr); }
   .fareCard { position: sticky; top: 96px; }
   .rateTiles { grid-template-columns: repeat(4, 1fr); }
 }
