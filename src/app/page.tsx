@@ -78,20 +78,50 @@ const FAQS = [
 
 const TESTIMONIALS = [
   {
-    name: "Lorraine McKell",
-    quote: "Once again, this service is the best way to go. Friendly, caring.",
+    name: "David Downs",
+    quote: "Excellent service.",
+    avatarUrl: "https://lh3.googleusercontent.com/a/ACg8ocIcVugdjikWxNLyy3khYYG9pzxOWIAxTXOTH-u3sNUmpJyXXA=w80-h80-c-rp-mo-br100",
   },
   {
-    name: "Angelo Marcoccia",
-    quote: "Gray Jay Care has provided amazing service to our family member over the past few weeks! The drivers are very polite, respectful and have great empathy.",
+    name: "Amy Osborn",
+    quote: "My 84 year old father just recently became unable to walk. We had an appointment at University hospital in neurology and I had no idea how I was going to get him there. Stairs out of their house were a real concern for us too. I contacted a few places but Gray Jay stood out to me because of the professionalism and thoroughness. I am a very anxious person but he made me feel at ease. I was really impressed with the whole process and so was my father. So nice, caring and reassuring. Even when we encountered a change in the length of our appointment we were accomodated. Sometimes I am leery of all five star reviews but in this case they are definitely real. We will be using Gray Jay for as long as their services are required. I definitely recommend!",
+    avatarUrl: "https://lh3.googleusercontent.com/a-/ALV-UjVmlaSdBizxfZAxI_5iVuDqzt7-ILN7tNjQbASSRAM2_U991S6pag=w80-h80-c-rp-mo-ba4-br100",
   },
   {
-    name: "Susan Smyth",
-    quote: "Very reasonable rates. Clean and modern vehicle. Polite, kind and sympathetic driver. Helped my mom relax during a stressful 2 hour drive.",
+    name: "John Cooke",
+    quote: "I was unable to take my wife to her appointment and Gray Jay Care stepped up at the last minute to help. My wife was very impressed and thankful for their excellent service and care.",
+    avatarUrl: "https://lh3.googleusercontent.com/a/ACg8ocKwjxZaZX4p5UhEBzTqni-RF-OinYU_Du-h4xThNU4r_QJ_Ow=w80-h80-c-rp-mo-br100",
+  },
+  {
+    name: "AM",
+    quote: "Best Medical Transport Service!!! I used Gray Jay Care to transport my wife from University Hospital to the home on Stretcher, They were on time and price is reasonable compare to other companies in area. It was incredible to see that they use a Stair chair to take her upstairs. Highly recommended to anyone looking for best transport for their loved ones.",
+    avatarUrl: "https://lh3.googleusercontent.com/a/ACg8ocIRypMDhQ4E-9OFU_YExKSywhbKkHSVU_LletddgM-dowTV1A=w80-h80-c-rp-mo-br100",
+  },
+  {
+    name: "Ronald Patterson",
+    quote: "I had a wonderful experience with GrayJayCare! They were incredibly helpful every step of the way, and the entire process was smooth and stress-free. The worker who assisted my family member was so kind, patient, and understanding, which made everything much easier. I really appreciate their professionalism and genuine care. Highly recommend GrayJayCare to anyone looking for quality support and excellent service!",
+    avatarUrl: "https://lh3.googleusercontent.com/a/ACg8ocIGpGRoZS8zafw87a7JRK8gXegEewXJlFh4hBIpnxuif_IjVg=w80-h80-c-rp-mo-br100",
+  },
+  {
+    name: "Faizan Ahmad",
+    quote: "Great guys! Exceptional service, always my first choice for patient transport.",
+    avatarUrl: "https://lh3.googleusercontent.com/a/ACg8ocLW5yOomUOKJNlB6DE01Nea00uSgz7jaD0Rl90nrE6qRtPe=w80-h80-c-rp-mo-br100",
   },
   {
     name: "M. Asad Nabeel",
     quote: "Great service! They transported my grandfather from Victoria Hospital, London to home with care and respect. Highly recommend.",
+  },
+  {
+    name: "Lorraine McKell",
+    quote: "Once again, this service is the best way to go. Friendly, caring. I would not have a problem recommend Gray Jay Care to anyone who has to transfer a loved one. Thanks again for looking after my mom ♥️",
+  },
+  {
+    name: "Angelo Marcoccia",
+    quote: "Gray Jay Care has provided amazing service to our family member over the past few weeks! The drivers are very polite, respectful and have great empathy for their patients which is a rarity these days!!! Thank you AM and Family",
+  },
+  {
+    name: "Susan Smyth",
+    quote: "Very reasonable rates. Clean and modern vehicle. Polite, kind and sympathetic driver. Helped my mom relax during a stressful 2 hour drive. Outstanding service all around. Highly recommend!!!",
   },
 ];
 

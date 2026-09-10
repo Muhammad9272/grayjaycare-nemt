@@ -358,20 +358,25 @@ test("revised public content, reviews, contact details, and call actions are pre
   }
   await expect(page.locator('[aria-label="Healthcare partners"]')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "View our latest Google reviews" })).toHaveAttribute("href", /share\.google/);
-  await expect(page.getByText("Verified Google review", { exact: true }).first()).toBeVisible();
-  const firstReview = page.locator("article").filter({ hasText: "Lorraine McKell" }).first();
+  await expect(page.getByText("Posted on Google", { exact: true }).first()).toBeVisible();
+  const firstReview = page.locator("article").filter({ hasText: "David Downs" }).first();
   await expect(firstReview).toBeVisible();
-  expect(await firstReview.evaluate((element) => getComputedStyle(element.parentElement!).animationName)).not.toBe("none");
-  const reviewControl = page.getByRole("button", { name: "Pause reviews" });
+  await expect(page.locator("article").filter({ hasText: "Ronald Patterson" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Previous review" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Next review" })).toBeVisible();
+  const reviewViewport = firstReview.locator("xpath=../..");
+  const initialScroll = await reviewViewport.evaluate((element) => element.scrollLeft);
+  await page.waitForTimeout(6_300);
+  expect(await reviewViewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(initialScroll);
+  const reviewControl = page.getByRole("button", { name: "Pause automatic review movement" });
   await expect(reviewControl).toBeVisible();
   await reviewControl.click();
-  await expect(page.getByRole("button", { name: "Resume reviews" })).toBeVisible();
-  expect(await firstReview.evaluate((element) => getComputedStyle(element.parentElement!).animationPlayState)).toBe("paused");
+  await expect(page.getByRole("button", { name: "Resume automatic review movement" })).toBeVisible();
 
   const callAction = page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" });
   await page.locator("body").click({ position: { x: 1, y: 1 } });
   let callFocused = false;
-  for (let index = 0; index < 30 && !callFocused; index += 1) {
+  for (let index = 0; index < 70 && !callFocused; index += 1) {
     await page.keyboard.press("Tab");
     callFocused = await callAction.evaluate((element) => element === document.activeElement);
   }

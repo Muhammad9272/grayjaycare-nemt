@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://code.tidio.co https://*.tidiochat.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://grayjaycare.ca https://embed-ssl.wistia.com https://*.tidio.co https://*.tidiochat.com",
+      "img-src 'self' data: blob: https://grayjaycare.ca https://lh3.googleusercontent.com https://cdn.trustindex.io https://embed-ssl.wistia.com https://*.tidio.co https://*.tidiochat.com",
       "font-src 'self' data: https://code.tidio.co https://*.tidiochat.com",
       "media-src 'self' https://code.tidio.co https://*.tidiochat.com",
       "connect-src 'self' https://*.tidio.co https://*.tidiochat.com wss://*.tidio.co wss://*.tidiochat.com",

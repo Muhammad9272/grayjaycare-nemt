@@ -939,24 +939,24 @@
 }
 
 .reviewCarousel {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
+  position: relative;
+  width: min(1280px, calc(100% - 92px));
+  margin: 30px auto 0;
 }
 
 .reviewMotionButton {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 999px;
-  background: rgba(75, 19, 126, 0.22);
-  padding: 8px 15px;
+  position: absolute;
+  z-index: 3;
+  top: -42px;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 50%;
+  background: rgba(75, 19, 126, 0.28);
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -971,101 +971,148 @@
 .reviewViewport {
   width: 100%;
   overflow: hidden;
-  margin: 30px auto 0;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  scroll-behavior: smooth;
 }
 
 .reviewTrack {
   display: flex;
   width: max-content;
-  gap: 14px;
-  padding-inline: 7px;
-  animation: review-marquee 34s linear infinite;
+  gap: 0;
 }
 
-.reviewViewport:hover .reviewTrack,
-.reviewViewport:focus-within .reviewTrack {
-  animation-play-state: paused;
+.reviewArrow {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  color: #6d1aa0;
+  background: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  box-shadow: 0 3px 12px rgba(43, 12, 62, 0.25);
+  cursor: pointer;
+  transform: translateY(-50%);
 }
 
-.reviewTrackPaused {
-  animation-play-state: paused;
+.reviewArrow:hover,
+.reviewArrow:focus-visible {
+  color: #fff;
+  background: #661595;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
 }
+
+.reviewPrevious { left: -45px; }
+.reviewNext { right: -45px; }
 
 .reviewCard {
   width: 300px;
-  height: 188px;
+  min-height: 205px;
   flex: 0 0 300px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #fff;
-  color: #272323;
-  padding: 14px;
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.1);
+  margin: 0 8px;
+  padding: 20px;
+  border: 1px solid #f4f4f4;
+  border-radius: 12px;
+  background: #f4f4f4;
+  color: #111;
 }
 
 .reviewHeader {
-  display: grid;
-  grid-template-columns: 30px 1fr 16px;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .reviewAvatar {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   place-items: center;
-  border-radius: 50%;
+  margin-right: 15px;
+  border-radius: 30px;
   background: #696e75;
+  background-position: center;
+  background-size: cover;
   color: #fff;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
 }
 
-.reviewHeader strong,
-.reviewHeader small {
+.reviewProfile {
+  min-width: 0;
+  flex: 1;
+}
+
+.reviewProfile strong,
+.reviewProfile small {
   display: block;
   line-height: 1.2;
 }
 
-.reviewHeader strong {
-  font-size: 10px;
-}
-
-.reviewHeader small {
-  color: #777;
-  font-size: 8px;
-}
-
-.reviewHeader b {
-  color: #4285f4;
-  font-family: Arial, sans-serif;
+.reviewProfile strong {
+  overflow: hidden;
+  color: #000;
   font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewProfile small {
+  margin-top: 3px;
+  color: #777;
+  font-size: 11px;
+}
+
+.reviewGoogleIcon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  align-self: flex-start;
+  background: url("https://cdn.trustindex.io/assets/platform/Google/icon.svg") center / contain no-repeat;
 }
 
 .stars {
-  margin-top: 4px;
+  height: 22px;
+  margin-top: 7px;
   color: #ffbb00;
-  font-size: 10px;
+  font-size: 17px;
+  line-height: 22px;
   letter-spacing: 1px;
 }
 
 .reviewCard p {
   display: -webkit-box;
   overflow: hidden;
-  margin: 5px 0 2px;
-  font-size: 9px;
-  line-height: 1.35;
+  height: 87px;
+  margin: 6px 0 0;
+  color: #222;
+  font-size: 15px;
+  line-height: 21.75px;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 6;
+  -webkit-line-clamp: 4;
 }
 
-@keyframes review-marquee {
-  to {
-    transform: translateX(calc(-50% - 7px));
-  }
+.reviewCard p.reviewQuoteExpanded {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+
+.reviewReadMore {
+  margin-top: 5px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .googleReviewsLink {
@@ -1784,14 +1831,20 @@
   }
 
   .reviewViewport {
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+    width: 100%;
   }
 
   .reviewCard {
     width: 270px;
     flex: 0 0 270px;
   }
+
+  .reviewCarousel {
+    width: calc(100% - 48px);
+  }
+
+  .reviewPrevious { left: -18px; }
+  .reviewNext { right: -18px; }
 
   .contact {
     min-height: 0;
@@ -1868,15 +1921,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reviewTrack {
-    width: auto;
+  .reviewViewport {
     overflow-x: auto;
-    padding: 0 20px 8px;
-    animation: none;
+    scroll-behavior: auto;
     scrollbar-width: thin;
   }
 
-  .reviewTrack > :nth-child(n + 5) {
-    display: none;
+  .reviewTrack {
+    width: max-content;
+    padding-bottom: 8px;
   }
 }
