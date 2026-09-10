@@ -5,6 +5,7 @@ import styles from "@/app/landing.module.css";
 
 type Review = {
   name: string;
+  date: string;
   quote: string;
   avatarUrl?: string;
 };
@@ -49,7 +50,7 @@ export default function ReviewCarousel({ reviews }: { reviews: Review[] }) {
                   >{review.avatarUrl ? "" : review.name.charAt(0)}</span>
                   <span className={styles.reviewProfile}>
                     <strong>{review.name}</strong>
-                    <small>Posted on Google</small>
+                    <small>{review.date}</small>
                   </span>
                   <span className={styles.reviewGoogleIcon} aria-label="Google review" />
                 </div>

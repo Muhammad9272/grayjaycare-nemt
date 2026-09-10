@@ -356,11 +356,15 @@ test("revised public content, reviews, contact details, and call actions are pre
   for (const removed of ["Sienna Senior Living", "Bluewater Health", "Windsor Regional Hospital", "London Health Sciences Centre", "Meadow Park Long-Term Care", "Nature", "Rodva", "Homepage"]) {
     await expect(page.getByText(removed, { exact: true })).toHaveCount(0);
   }
-  await expect(page.locator('[aria-label="Healthcare partners"]')).toHaveCount(0);
+  await expect(page.locator('[aria-label="Care partners"]')).toBeVisible();
+  await expect(page.getByText("Connected across the circle of care", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View our latest Google reviews" })).toHaveAttribute("href", /share\.google/);
-  await expect(page.getByText("Posted on Google", { exact: true }).first()).toBeVisible();
-  const firstReview = page.locator("article").filter({ hasText: "David Downs" }).first();
+  await expect(page.getByText("9 September 2026", { exact: true })).toBeVisible();
+  const firstReview = page.locator("article").filter({ hasText: "Michele Maenpaa" }).first();
   await expect(firstReview).toBeVisible();
+  await expect(firstReview).toContainText("It was a very smooth transfer");
+  await expect(page.locator("article").filter({ hasText: "Shelley Hunter" })).toHaveCount(1);
+  await expect(page.locator("article").filter({ hasText: "Angela Munsterman" })).toHaveCount(1);
   await expect(page.locator("article").filter({ hasText: "Ronald Patterson" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Previous review" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Next review" })).toBeVisible();

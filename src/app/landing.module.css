@@ -405,6 +405,58 @@
   white-space: nowrap;
 }
 
+.partners {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  padding: 42px 30px;
+  border-bottom: 1px solid #f3e9f8;
+  background: #fff;
+  text-align: center;
+}
+
+.partnerContent {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.partnerContent h2 {
+  margin: 8px 0 10px;
+  color: var(--heading);
+  font-family: var(--font-landing-display), serif;
+  font-size: clamp(28px, 2.2vw, 38px);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.partnerContent > p:not(.eyebrow) {
+  max-width: 850px;
+  margin: 0 auto;
+  color: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.partnerTypes {
+  display: grid;
+  margin-top: 25px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.partnerTypes span {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ead3f7;
+  border-radius: 999px;
+  background: #fcf7ff;
+  color: #67239a;
+  font-size: 14px;
+  font-weight: 650;
+}
+
 .about {
   min-height: 960px;
   padding: 112px 0 88px;
@@ -1562,6 +1614,31 @@
   .phoneNumber {
     margin: 0 0 20px;
     font-size: clamp(35px, 10.4vw, 42px);
+  }
+
+  .partners {
+    min-height: 0;
+    padding: 48px 20px;
+  }
+
+  .partnerContent h2 {
+    font-size: 30px;
+  }
+
+  .partnerContent > p:not(.eyebrow) {
+    font-size: 15px;
+  }
+
+  .partnerTypes {
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .partnerTypes span {
+    min-height: 54px;
+    padding: 7px 10px;
+    font-size: 13px;
+    line-height: 1.25;
   }
 
   .about {
