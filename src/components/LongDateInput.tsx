@@ -34,6 +34,8 @@ type LongDateInputProps = {
   className?: string;
   yearsBack?: number;
   yearsForward?: number;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
 };
 
 function parseValue(value: string | undefined): DateParts {
@@ -63,6 +65,8 @@ export default function LongDateInput({
   className = "",
   yearsBack = 1,
   yearsForward = 5,
+  ariaInvalid,
+  ariaDescribedBy,
 }: LongDateInputProps) {
   const [parts, setParts] = useState<DateParts>(() => parseValue(value ?? defaultValue));
 
@@ -90,19 +94,19 @@ export default function LongDateInput({
 
   return (
     <div className={`${styles.dateInput} ${includeTime ? styles.dateTimeInput : ""} ${className}`.trim()}>
-      <select className={classes} aria-label={`${ariaLabel}: day`} value={parts.day} onChange={(event) => update({ day: event.target.value })} required={required}>
+      <select className={classes} aria-label={`${ariaLabel}: day`} aria-invalid={ariaInvalid} aria-describedby={ariaDescribedBy} value={parts.day} onChange={(event) => update({ day: event.target.value })} required={required}>
         <option value="">Day</option>
         {Array.from({ length: dayCount }, (_, index) => index + 1).map((day) => (
           <option key={day} value={String(day).padStart(2, "0")}>{day}</option>
         ))}
       </select>
-      <select className={classes} aria-label={`${ariaLabel}: month`} value={parts.month} onChange={(event) => update({ month: event.target.value })} required={required}>
+      <select className={classes} aria-label={`${ariaLabel}: month`} aria-invalid={ariaInvalid} aria-describedby={ariaDescribedBy} value={parts.month} onChange={(event) => update({ month: event.target.value })} required={required}>
         <option value="">Month</option>
         {MONTHS.map((month, index) => (
           <option key={month} value={String(index + 1).padStart(2, "0")}>{month}</option>
         ))}
       </select>
-      <select className={classes} aria-label={`${ariaLabel}: year`} value={parts.year} onChange={(event) => update({ year: event.target.value })} required={required}>
+      <select className={classes} aria-label={`${ariaLabel}: year`} aria-invalid={ariaInvalid} aria-describedby={ariaDescribedBy} value={parts.year} onChange={(event) => update({ year: event.target.value })} required={required}>
         <option value="">Year</option>
         {years.map((year) => <option key={year} value={year}>{year}</option>)}
       </select>
@@ -111,6 +115,8 @@ export default function LongDateInput({
           type="time"
           className={`${classes} ${styles.timeControl}`.trim()}
           aria-label={`${ariaLabel}: time`}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           value={parts.time}
           onChange={(event) => update({ time: event.target.value })}
           required={required}

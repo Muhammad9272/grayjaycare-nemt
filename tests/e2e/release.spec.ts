@@ -396,6 +396,52 @@ test("revised public content, reviews, contact details, and call actions are pre
   }
 });
 
+test("booking form shows an error below every missing field and submits from the bottom", async ({ page }) => {
+  await page.goto("/book");
+  const submitButton = page.getByRole("button", { name: "Request this booking" });
+  await submitButton.click();
+
+  for (const message of [
+    "Enter the contact person’s full name.",
+    "Enter a valid phone number with at least 7 digits.",
+    "Enter a valid email address.",
+    "Enter the patient’s full name.",
+    "Enter the complete pickup address.",
+    "Enter the complete drop-off address.",
+    "Select the pickup date and time.",
+    "Select a payment method.",
+  ]) {
+    await expect(page.getByText(message, { exact: true })).toBeVisible();
+  }
+
+  await expect(page.getByText("Please correct the highlighted fields below.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Contact person's full name")).toBeFocused();
+  await expect(page.getByLabel("Contact person's full name")).toHaveAttribute("aria-invalid", "true");
+
+  const finalSection = page.getByRole("heading", { name: "Belongings and notes" }).locator("xpath=ancestor::section");
+  const [sectionBox, buttonBox] = await Promise.all([finalSection.boundingBox(), submitButton.boundingBox()]);
+  expect(sectionBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+  expect(buttonBox!.y).toBeGreaterThan(sectionBox!.y + sectionBox!.height);
+
+  await page.getByLabel("Does the patient require oxygen during transportation?").selectOption("YES");
+  await page.getByLabel("Does the patient have a DNR (Do Not Resuscitate) paperwork?").selectOption("YES");
+  await page.getByLabel("Will the patient have belongings?").selectOption("YES");
+  await page.getByLabel("Payment method").selectOption("INVOICE");
+  await submitButton.click();
+  for (const message of [
+    "Enter an oxygen flow rate between 0.1 and 5 L/min.",
+    "Confirm that the required DNR documentation will be available at pickup.",
+    "Describe the patient’s belongings.",
+    "Choose who should receive the invoice.",
+    "Enter the invoice name or organization.",
+    "Enter a valid invoice email address.",
+    "Enter the billing address.",
+  ]) {
+    await expect(page.getByText(message, { exact: true })).toBeVisible();
+  }
+});
+
 test("a public booking creates an account and signs the passenger directly into the portal", async ({ page }) => {
   await page.route("**/api/pricing/quote", async (route) => {
     await route.fulfill({

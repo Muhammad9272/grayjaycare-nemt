@@ -20,6 +20,15 @@ type RequirementAnswer = "NO" | "YES" | "NOT_SURE";
 type WeightUnit = "LB" | "KG";
 type SpecialAssistance = "NO" | "STAIR_CHAIR" | "BARIATRIC" | "NOT_SURE";
 type BookingChannel = "PUBLIC" | "PHONE" | "HOSPITAL";
+type BookingFieldKey =
+  | "contactName" | "guestPhone" | "guestEmail" | "patientName" | "passengerWeight"
+  | "escortCount" | "pickupAddress" | "dropoffAddress" | "scheduledAt" | "returnScheduledAt"
+  | "manualDistanceKm" | "oxygenLitresPerMinute" | "isolationDetails" | "dnrDocumentationConfirmed"
+  | "paymentPreference" | "invoiceRecipient" | "invoiceName" | "invoiceEmail" | "billingAddress"
+  | "billingOrganization" | "billingContactPerson" | "insuranceCompany" | "insuranceClaimNumber"
+  | "opgtClientInformation" | "otherPaymentDetails" | "belongingsDescription" | "extraAttendantHours"
+  | "waitMinutes";
+type BookingFieldErrors = Partial<Record<BookingFieldKey, string>>;
 
 type Breakdown = {
   baseFare: number;
@@ -132,6 +141,7 @@ function BookingPageContent() {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
   const [confirmation, setConfirmation] = useState<{
     referenceCode: string;
     emailSent: boolean;
@@ -140,8 +150,8 @@ function BookingPageContent() {
   const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
-    if (error) errorRef.current?.focus();
-  }, [error]);
+    if (error && Object.keys(fieldErrors).length === 0) errorRef.current?.focus();
+  }, [error, fieldErrors]);
 
   const readyForQuote = useMemo(
     () => pickupAddress.length > 3 && dropoffAddress.length > 3 && scheduledAt.length > 0,
@@ -262,9 +272,77 @@ function BookingPageContent() {
   const combinedTotal =
     (quote?.breakdown?.total ?? 0) + (hasReturnLeg ? (returnQuote?.breakdown?.total ?? 0) : 0);
 
+  function showFieldErrors(errors: BookingFieldErrors) {
+    setFieldErrors(errors);
+    setError("Please correct the highlighted fields below.");
+    const firstField = Object.keys(errors)[0];
+    window.requestAnimationFrame(() => {
+      const wrapper = document.querySelector<HTMLElement>(`[data-error-field="${firstField}"]`);
+      wrapper?.scrollIntoView({ behavior: "smooth", block: "center" });
+      wrapper?.querySelector<HTMLElement>("input, select, textarea, button")?.focus({ preventScroll: true });
+    });
+  }
+
+  function validateBooking(): BookingFieldErrors {
+    const errors: BookingFieldErrors = {};
+    if (contactName.trim().length < 2) errors.contactName = "Enter the contact person’s full name.";
+    if (guestPhone.replace(/\D/g, "").length < 7) errors.guestPhone = "Enter a valid phone number with at least 7 digits.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())) errors.guestEmail = "Enter a valid email address.";
+    if (patientName.trim().length < 2) errors.patientName = "Enter the patient’s full name.";
+    if (patientOver250 === "YES" && !Number(passengerWeight)) errors.passengerWeight = "Enter the patient’s approximate weight.";
+    if (specialAssistance === "BARIATRIC" && !Number(passengerWeight)) errors.passengerWeight = "Enter the patient’s approximate weight for bariatric support.";
+    if (accompanimentChoice === "3_PLUS" && Number(escortCount) < 3) errors.escortCount = "Enter the number of people accompanying the patient.";
+    if (pickupAddress.trim().length < 3) errors.pickupAddress = "Enter the complete pickup address.";
+    if (dropoffAddress.trim().length < 3) errors.dropoffAddress = "Enter the complete drop-off address.";
+    if (!scheduledAt) errors.scheduledAt = "Select the pickup date and time.";
+    if (returnTripType === "SCHEDULED_RETURN" && !returnScheduledAt) errors.returnScheduledAt = "Select the return pickup date and time.";
+    if (returnTripType === "SCHEDULED_RETURN" && scheduledAt && returnScheduledAt && returnScheduledAt <= scheduledAt) errors.returnScheduledAt = "Return pickup must be after the outbound pickup.";
+    if (returnTripType === "WAIT_AND_RETURN" && Number(waitMinutes) <= 0) errors.waitMinutes = "Enter an approximate waiting time.";
+    if (bookingChannel !== "PUBLIC" && readyForQuote && quote?.distanceKm == null && !Number(manualDistanceKm)) errors.manualDistanceKm = "Enter the estimated trip distance in kilometres.";
+    if (oxygenRequirement === "YES" && (!Number(oxygenLitresPerMinute) || Number(oxygenLitresPerMinute) > 5)) errors.oxygenLitresPerMinute = "Enter an oxygen flow rate between 0.1 and 5 L/min.";
+    if (isolationRequirement === "YES" && !isolationDetails.trim()) errors.isolationDetails = "Enter the isolation type or precautions.";
+    if (dnrRequirement === "YES" && !dnrDocumentationConfirmed) errors.dnrDocumentationConfirmed = "Confirm that the required DNR documentation will be available at pickup.";
+    if (!paymentPreference) errors.paymentPreference = "Select a payment method.";
+    if (paymentPreference === "INVOICE") {
+      if (!invoiceRecipient) errors.invoiceRecipient = "Choose who should receive the invoice.";
+      if (!invoiceName.trim()) errors.invoiceName = "Enter the invoice name or organization.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invoiceEmail.trim())) errors.invoiceEmail = "Enter a valid invoice email address.";
+      if (!billingAddress.trim()) errors.billingAddress = "Enter the billing address.";
+    }
+    if (paymentPreference === "DIRECT_BILLING") {
+      if (!billingOrganization.trim()) errors.billingOrganization = "Enter the account or organization name.";
+      if (!billingContactPerson.trim()) errors.billingContactPerson = "Enter the billing contact person.";
+    }
+    if (paymentPreference === "INSURANCE") {
+      if (!insuranceCompany.trim()) errors.insuranceCompany = "Enter the insurance company.";
+      if (!insuranceClaimNumber.trim()) errors.insuranceClaimNumber = "Enter the claim or reference number.";
+    }
+    if (paymentPreference === "OPGT" && !opgtClientInformation.trim()) errors.opgtClientInformation = "Enter the OPGT client or account information.";
+    if (paymentPreference === "OTHER" && !otherPaymentDetails.trim()) errors.otherPaymentDetails = "Provide the payment details.";
+    if (belongingsRequirement === "YES" && !belongingsDescription.trim()) errors.belongingsDescription = "Describe the patient’s belongings.";
+    if (extraAttendant && Number(extraAttendantHours) <= 0) errors.extraAttendantHours = "Enter the extra attendant time.";
+    return errors;
+  }
+
+  function handleFormChange(event: React.FormEvent<HTMLFormElement>) {
+    const key = (event.target as HTMLElement).closest<HTMLElement>("[data-error-field]")?.dataset.errorField as BookingFieldKey | undefined;
+    if (!key || !fieldErrors[key]) return;
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    const validationErrors = validateBooking();
+    if (Object.keys(validationErrors).length > 0) {
+      showFieldErrors(validationErrors);
+      return;
+    }
+    setFieldErrors({});
 
     const distanceKm = manualDistanceKm ? Number(manualDistanceKm) : quote?.distanceKm;
     if (!distanceKm && bookingChannel !== "PUBLIC") {
@@ -338,6 +416,18 @@ function BookingPageContent() {
       });
       if (!res.ok) {
         const data = await res.json();
+        const apiFieldErrors = data?.error?.fieldErrors as Record<string, string[] | undefined> | undefined;
+        if (apiFieldErrors) {
+          const mappedErrors = Object.fromEntries(
+            Object.entries(apiFieldErrors)
+              .filter((entry): entry is [string, string[]] => Boolean(entry[1]?.[0]))
+              .map(([key, messages]) => [key === "guestName" ? "patientName" : key, messages[0]]),
+          ) as BookingFieldErrors;
+          if (Object.keys(mappedErrors).length > 0) {
+            showFieldErrors(mappedErrors);
+            return;
+          }
+        }
         setError(typeof data?.error === "string" ? data.error : "Please check the form for errors.");
         return;
       }
@@ -447,27 +537,30 @@ function BookingPageContent() {
           </div>
         </section>
 
-        <form onSubmit={handleSubmit} className={styles.bookingLayout}>
+        <form onSubmit={handleSubmit} onChange={handleFormChange} className={styles.bookingLayout} noValidate>
           <div className={styles.formColumn}>
             <section className={styles.sectionCard}>
               <SectionHeader number="01" title="Contact information" copy="Who should our dispatcher contact to confirm this booking?" />
               <div className={styles.formGrid}>
-                <label className={styles.field}>
+                <label className={`${styles.field} ${fieldErrors.contactName ? styles.invalidField : ""}`} data-error-field="contactName">
                   <span>Contact person&apos;s full name</span>
-                  <input className={styles.input} autoComplete="name" value={contactName} onChange={(event) => setContactName(event.target.value)} required />
+                  <input className={styles.input} autoComplete="name" value={contactName} onChange={(event) => setContactName(event.target.value)} aria-invalid={Boolean(fieldErrors.contactName)} aria-describedby={fieldErrors.contactName ? "contactName-error" : undefined} required />
+                  <FieldError field="contactName" errors={fieldErrors} />
                 </label>
-                <label className={styles.field}>
+                <label className={`${styles.field} ${fieldErrors.guestPhone ? styles.invalidField : ""}`} data-error-field="guestPhone">
                   <span>Phone number</span>
-                  <input type="tel" className={styles.input} autoComplete="tel" value={guestPhone} onChange={(event) => setGuestPhone(event.target.value)} required />
+                  <input type="tel" className={styles.input} autoComplete="tel" value={guestPhone} onChange={(event) => setGuestPhone(event.target.value)} aria-invalid={Boolean(fieldErrors.guestPhone)} aria-describedby={fieldErrors.guestPhone ? "guestPhone-error" : undefined} required />
+                  <FieldError field="guestPhone" errors={fieldErrors} />
                 </label>
                 <label className={styles.field}>
                   <span>Phone extension <small>(optional)</small></span>
                   <input className={styles.input} inputMode="numeric" value={contactPhoneExtension} onChange={(event) => setContactPhoneExtension(event.target.value)} placeholder="e.g. 214" />
                 </label>
-                <label className={styles.field}>
+                <label className={`${styles.field} ${fieldErrors.guestEmail ? styles.invalidField : ""}`} data-error-field="guestEmail">
                   <span>Email address</span>
-                  <input type="email" className={styles.input} autoComplete="email" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} required />
+                  <input type="email" className={styles.input} autoComplete="email" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} aria-invalid={Boolean(fieldErrors.guestEmail)} aria-describedby={fieldErrors.guestEmail ? "guestEmail-error" : undefined} required />
                   <small>We&apos;ll send the booking confirmation and reference number to this contact.</small>
+                  <FieldError field="guestEmail" errors={fieldErrors} />
                 </label>
               </div>
             </section>
@@ -475,9 +568,10 @@ function BookingPageContent() {
             <section className={styles.sectionCard}>
               <SectionHeader number="02" title="Patient information" copy="Tell us who will be travelling and what assistance they may require." />
               <div className={styles.formGrid}>
-                <label className={styles.field}>
+                <label className={`${styles.field} ${fieldErrors.patientName ? styles.invalidField : ""}`} data-error-field="patientName">
                   <span>Patient&apos;s full name</span>
-                  <input className={styles.input} value={patientName} onChange={(event) => setPatientName(event.target.value)} required />
+                  <input className={styles.input} value={patientName} onChange={(event) => setPatientName(event.target.value)} aria-invalid={Boolean(fieldErrors.patientName)} aria-describedby={fieldErrors.patientName ? "patientName-error" : undefined} required />
+                  <FieldError field="patientName" errors={fieldErrors} />
                 </label>
                 <label className={styles.field}>
                   <span>Medical Record Number (MRN) — optional</span>
@@ -490,39 +584,39 @@ function BookingPageContent() {
                     <option value="NO">No</option><option value="YES">Yes</option><option value="NOT_SURE">Not sure</option>
                   </select>
                 </label>
-                {patientOver250 === "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} styles={styles} />}
+                {patientOver250 === "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} error={fieldErrors.passengerWeight} styles={styles} />}
                 <label className={styles.field}>
                   <span>Will anyone be accompanying the patient?</span>
                   <select className={styles.input} value={accompanimentChoice} onChange={(event) => { const choice = event.target.value; setAccompanimentChoice(choice); setEscortCount(choice === "3_PLUS" ? "3" : choice); }}>
                     <option value="0">No</option><option value="1">Yes — 1 person</option><option value="2">Yes — 2 people</option><option value="3_PLUS">Yes — 3 or more people</option>
                   </select>
                 </label>
-                {accompanimentChoice === "3_PLUS" && <label className={styles.field}><span>How many people will be accompanying the patient?</span><input type="number" min="3" max="10" className={styles.input} value={escortCount} onChange={(event) => setEscortCount(event.target.value)} required /></label>}
+                {accompanimentChoice === "3_PLUS" && <label className={`${styles.field} ${fieldErrors.escortCount ? styles.invalidField : ""}`} data-error-field="escortCount"><span>How many people will be accompanying the patient?</span><input type="number" min="3" max="10" className={styles.input} value={escortCount} onChange={(event) => setEscortCount(event.target.value)} aria-invalid={Boolean(fieldErrors.escortCount)} aria-describedby={fieldErrors.escortCount ? "escortCount-error" : undefined} required /><FieldError field="escortCount" errors={fieldErrors} /></label>}
               </div>
             </section>
 
             <section className={styles.sectionCard}>
               <SectionHeader number="03" title="Trip details" copy="Where and when should we pick up the patient?" />
               <div className={styles.formGrid}>
-                <label className={`${styles.field} ${styles.fullField}`}><span>Pickup address</span><AddressAutocomplete inputClassName={styles.input} value={pickupAddress} onChange={setPickupAddress} onPlaceResolved={setPickupPlace} placeholder="123 Main St, London, ON" required /></label>
+                <label className={`${styles.field} ${styles.fullField} ${fieldErrors.pickupAddress ? styles.invalidField : ""}`} data-error-field="pickupAddress"><span>Pickup address</span><AddressAutocomplete inputClassName={styles.input} value={pickupAddress} onChange={setPickupAddress} onPlaceResolved={setPickupPlace} placeholder="123 Main St, London, ON" ariaInvalid={Boolean(fieldErrors.pickupAddress)} ariaDescribedBy={fieldErrors.pickupAddress ? "pickupAddress-error" : undefined} required /><FieldError field="pickupAddress" errors={fieldErrors} /></label>
                 <label className={styles.field}><span>Pickup facility / hospital name <small>(optional)</small></span><input className={styles.input} value={pickupFacilityName} onChange={(event) => setPickupFacilityName(event.target.value)} /></label>
                 <label className={styles.field}><span>Pickup department / unit <small>(optional)</small></span><input className={styles.input} value={pickupDepartment} onChange={(event) => setPickupDepartment(event.target.value)} placeholder="e.g. Endoscopy Unit" /></label>
                 <label className={styles.field}><span>Pickup room <small>(optional)</small></span><input className={styles.input} value={pickupRoom} onChange={(event) => setPickupRoom(event.target.value)} placeholder="e.g. Room 200" /></label>
-                <label className={`${styles.field} ${styles.fullField}`}><span>Drop-off address</span><AddressAutocomplete inputClassName={styles.input} value={dropoffAddress} onChange={setDropoffAddress} onPlaceResolved={setDropoffPlace} placeholder="Hospital, clinic or home address" required /></label>
+                <label className={`${styles.field} ${styles.fullField} ${fieldErrors.dropoffAddress ? styles.invalidField : ""}`} data-error-field="dropoffAddress"><span>Drop-off address</span><AddressAutocomplete inputClassName={styles.input} value={dropoffAddress} onChange={setDropoffAddress} onPlaceResolved={setDropoffPlace} placeholder="Hospital, clinic or home address" ariaInvalid={Boolean(fieldErrors.dropoffAddress)} ariaDescribedBy={fieldErrors.dropoffAddress ? "dropoffAddress-error" : undefined} required /><FieldError field="dropoffAddress" errors={fieldErrors} /></label>
                 <label className={styles.field}><span>Drop-off facility / hospital name <small>(optional)</small></span><input className={styles.input} value={dropoffFacilityName} onChange={(event) => setDropoffFacilityName(event.target.value)} /></label>
                 <label className={styles.field}><span>Drop-off department / unit <small>(optional)</small></span><input className={styles.input} value={dropoffDepartment} onChange={(event) => setDropoffDepartment(event.target.value)} placeholder="e.g. Imaging" /></label>
                 <label className={styles.field}><span>Drop-off room <small>(optional)</small></span><input className={styles.input} value={dropoffRoom} onChange={(event) => setDropoffRoom(event.target.value)} placeholder="e.g. Room 310" /></label>
-                <div className={`${styles.field} ${styles.fullField}`}><span>Pickup date and time</span><LongDateInput includeTime min={minimumPickupTime} ariaLabel="Pickup date and time" controlClassName={styles.input} value={scheduledAt} onChange={setScheduledAt} required /></div>
+                <div className={`${styles.field} ${styles.fullField} ${fieldErrors.scheduledAt ? styles.invalidField : ""}`} data-error-field="scheduledAt"><span>Pickup date and time</span><LongDateInput includeTime min={minimumPickupTime} ariaLabel="Pickup date and time" controlClassName={styles.input} value={scheduledAt} onChange={setScheduledAt} ariaInvalid={Boolean(fieldErrors.scheduledAt)} ariaDescribedBy={fieldErrors.scheduledAt ? "scheduledAt-error" : undefined} required /><FieldError field="scheduledAt" errors={fieldErrors} /></div>
                 <div className={`${styles.roundTripBox} ${styles.fullField}`}>
                   <label className={styles.field}><span>One-way or return trip?</span><select className={styles.input} value={returnTripType} onChange={(event) => setReturnTripType(event.target.value as ReturnTripType)}><option value="ONE_WAY">One-way trip</option><option value="WAIT_AND_RETURN">Wait with the patient and return</option><option value="SCHEDULED_RETURN">Drop off and return later</option></select></label>
-                  {returnTripType === "SCHEDULED_RETURN" && <div className={styles.field}><span>Estimated return pickup date and time</span><LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} required /></div>}
-                  {returnTripType === "WAIT_AND_RETURN" && <div className={`${styles.field} ${styles.fullField}`}><span>What is the approximate waiting time before returning with the patient?</span><div className={styles.formGrid}><label className={styles.field}><span>Hours</span><select className={styles.input} value={waitHours} onChange={(event) => setWaitHours(event.target.value)}>{Array.from({ length: 13 }, (_, hour) => <option key={hour} value={hour}>{hour}</option>)}</select></label><label className={styles.field}><span>Minutes</span><select className={styles.input} value={waitMinuteRemainder} onChange={(event) => setWaitMinuteRemainder(event.target.value)}>{[0, 15, 30, 45].map((minute) => <option key={minute} value={minute}>{String(minute).padStart(2, "0")}</option>)}</select></label></div><small>Waiting time charges may apply based on the actual waiting time.</small></div>}
+                  {returnTripType === "SCHEDULED_RETURN" && <div className={`${styles.field} ${fieldErrors.returnScheduledAt ? styles.invalidField : ""}`} data-error-field="returnScheduledAt"><span>Estimated return pickup date and time</span><LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} ariaInvalid={Boolean(fieldErrors.returnScheduledAt)} ariaDescribedBy={fieldErrors.returnScheduledAt ? "returnScheduledAt-error" : undefined} required /><FieldError field="returnScheduledAt" errors={fieldErrors} /></div>}
+                  {returnTripType === "WAIT_AND_RETURN" && <div className={`${styles.field} ${styles.fullField} ${fieldErrors.waitMinutes ? styles.invalidField : ""}`} data-error-field="waitMinutes"><span>What is the approximate waiting time before returning with the patient?</span><div className={styles.formGrid}><label className={styles.field}><span>Hours</span><select className={styles.input} value={waitHours} onChange={(event) => setWaitHours(event.target.value)}>{Array.from({ length: 13 }, (_, hour) => <option key={hour} value={hour}>{hour}</option>)}</select></label><label className={styles.field}><span>Minutes</span><select className={styles.input} value={waitMinuteRemainder} onChange={(event) => setWaitMinuteRemainder(event.target.value)}>{[0, 15, 30, 45].map((minute) => <option key={minute} value={minute}>{String(minute).padStart(2, "0")}</option>)}</select></label></div><small>Waiting time charges may apply based on the actual waiting time.</small><FieldError field="waitMinutes" errors={fieldErrors} /></div>}
                 </div>
                 {bookingChannel !== "PUBLIC" && <>
                   <label className={styles.field}><span>Preferred timing</span><select className={styles.input} value={pickupTimePreference} onChange={(event) => setPickupTimePreference(event.target.value as PickupTimePreference)}><option value="SPECIFIC">Specific time</option><option value="ASAP">First available (ASAP)</option><option value="FLEXIBLE">Any time that day</option></select></label>
                   <label className={styles.field}><span>Service area</span><select className={styles.input} value={isOutOfCity ? "out" : "in"} onChange={(event) => setIsOutOfCity(event.target.value === "out")}><option value="in">Within London</option><option value="out">Outside London</option></select></label>
                 </>}
-                {bookingChannel !== "PUBLIC" && readyForQuote && quote && quote.distanceKm == null && <label className={`${styles.field} ${styles.fullField}`}><span>Estimated trip distance (km)</span><input type="number" min="0.1" step="0.1" className={styles.input} value={manualDistanceKm} onChange={(event) => setManualDistanceKm(event.target.value)} required /></label>}
+                {bookingChannel !== "PUBLIC" && readyForQuote && quote && quote.distanceKm == null && <label className={`${styles.field} ${styles.fullField} ${fieldErrors.manualDistanceKm ? styles.invalidField : ""}`} data-error-field="manualDistanceKm"><span>Estimated trip distance (km)</span><input type="number" min="0.1" step="0.1" className={styles.input} value={manualDistanceKm} onChange={(event) => setManualDistanceKm(event.target.value)} aria-invalid={Boolean(fieldErrors.manualDistanceKm)} aria-describedby={fieldErrors.manualDistanceKm ? "manualDistanceKm-error" : undefined} required /><FieldError field="manualDistanceKm" errors={fieldErrors} /></label>}
               </div>
             </section>
 
@@ -537,22 +631,22 @@ function BookingPageContent() {
               <div className={styles.formGrid}>
                 <label className={styles.field}><span>Does the patient require special assistance?</span><select className={styles.input} value={specialAssistance} onChange={(event) => setSpecialAssistance(event.target.value as SpecialAssistance)}><option value="NO">No</option><option value="STAIR_CHAIR">Yes — Stair-chair assistance</option><option value="BARIATRIC" disabled={mobilityType === "AMBULATORY"}>Yes — Bariatric support</option><option value="NOT_SURE">Not sure</option></select>{mobilityType === "AMBULATORY" && <small>Bariatric support is available for wheelchair and stretcher transportation.</small>}</label>
                 {specialAssistance === "STAIR_CHAIR" && <div className={styles.field}><RequirementSelect label="Does the patient weigh 250 lb (113 kg) or less?" value={stairChairWeightEligible} onChange={setStairChairWeightEligible} styles={styles} /><small>Stair-chair assistance is available for patients up to 250 lb (113 kg), subject to safe operating conditions.</small></div>}
-                {specialAssistance === "BARIATRIC" && <div className={styles.field}>{patientOver250 !== "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} styles={styles} />}<small>Bariatric support is available for wheelchair and stretcher transportation.</small></div>}
+                {specialAssistance === "BARIATRIC" && <div className={styles.field}>{patientOver250 !== "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} error={fieldErrors.passengerWeight} styles={styles} />}<small>Bariatric support is available for wheelchair and stretcher transportation.</small></div>}
                 <RequirementSelect label="Does the patient require oxygen during transportation?" value={oxygenRequirement} onChange={setOxygenRequirement} styles={styles} />
-                {oxygenRequirement === "YES" && <label className={styles.field}><span>What is the required oxygen flow rate?</span><span className={styles.inputWithSuffix}><input type="number" min="0.1" max="5" step="0.1" className={styles.input} value={oxygenLitresPerMinute} onChange={(event) => setOxygenLitresPerMinute(event.target.value)} required /><b>L/min</b></span><small>Gray Jay Care provides oxygen transportation support for flow rates up to a maximum of 5 L/min. Please provide the patient&apos;s prescribed flow rate when booking.</small></label>}
+                {oxygenRequirement === "YES" && <label className={`${styles.field} ${fieldErrors.oxygenLitresPerMinute ? styles.invalidField : ""}`} data-error-field="oxygenLitresPerMinute"><span>What is the required oxygen flow rate?</span><span className={styles.inputWithSuffix}><input type="number" min="0.1" max="5" step="0.1" className={styles.input} value={oxygenLitresPerMinute} onChange={(event) => setOxygenLitresPerMinute(event.target.value)} aria-invalid={Boolean(fieldErrors.oxygenLitresPerMinute)} aria-describedby={fieldErrors.oxygenLitresPerMinute ? "oxygenLitresPerMinute-error" : undefined} required /><b>L/min</b></span><small>Gray Jay Care provides oxygen transportation support for flow rates up to a maximum of 5 L/min. Please provide the patient&apos;s prescribed flow rate when booking.</small><FieldError field="oxygenLitresPerMinute" errors={fieldErrors} /></label>}
                 <RequirementSelect label="Are isolation precautions required?" value={isolationRequirement} onChange={setIsolationRequirement} styles={styles} />
-                {isolationRequirement === "YES" && <label className={styles.field}><span>Isolation type / precautions</span><input className={styles.input} value={isolationDetails} onChange={(event) => setIsolationDetails(event.target.value)} placeholder="e.g. contact, droplet, flu, COVID-19" required /></label>}
+                {isolationRequirement === "YES" && <label className={`${styles.field} ${fieldErrors.isolationDetails ? styles.invalidField : ""}`} data-error-field="isolationDetails"><span>Isolation type / precautions</span><input className={styles.input} value={isolationDetails} onChange={(event) => setIsolationDetails(event.target.value)} placeholder="e.g. contact, droplet, flu, COVID-19" aria-invalid={Boolean(fieldErrors.isolationDetails)} aria-describedby={fieldErrors.isolationDetails ? "isolationDetails-error" : undefined} required /><FieldError field="isolationDetails" errors={fieldErrors} /></label>}
                 <RequirementSelect label="Does the patient have a DNR (Do Not Resuscitate) paperwork?" value={dnrRequirement} onChange={setDnrRequirement} styles={styles} />
-                {dnrRequirement === "YES" && <label className={`${styles.optionCard} ${styles.fullField} ${dnrDocumentationConfirmed ? styles.optionActive : ""}`}><input type="checkbox" checked={dnrDocumentationConfirmed} onChange={(event) => setDnrDocumentationConfirmed(event.target.checked)} required /><OptionIcon type="care" /><span><strong>Please confirm that the required DNR documentation will be available at pickup.</strong></span></label>}
+                {dnrRequirement === "YES" && <div className={`${styles.fullField} ${fieldErrors.dnrDocumentationConfirmed ? styles.invalidField : ""}`} data-error-field="dnrDocumentationConfirmed"><label className={`${styles.optionCard} ${dnrDocumentationConfirmed ? styles.optionActive : ""}`}><input type="checkbox" checked={dnrDocumentationConfirmed} onChange={(event) => setDnrDocumentationConfirmed(event.target.checked)} aria-invalid={Boolean(fieldErrors.dnrDocumentationConfirmed)} aria-describedby={fieldErrors.dnrDocumentationConfirmed ? "dnrDocumentationConfirmed-error" : undefined} required /><OptionIcon type="care" /><span><strong>Please confirm that the required DNR documentation will be available at pickup.</strong></span></label><FieldError field="dnrDocumentationConfirmed" errors={fieldErrors} /></div>}
               </div>
             </section>
 
             <section className={styles.sectionCard}>
               <SectionHeader number="06" title="Payment information" copy="How will this transportation be paid for?" />
               <div className={styles.formGrid}>
-                <label className={styles.field}>
+                <label className={`${styles.field} ${fieldErrors.paymentPreference ? styles.invalidField : ""}`} data-error-field="paymentPreference">
                   <span>Payment method</span>
-                  <select className={styles.input} value={paymentPreference} onChange={(event) => setPaymentPreference(event.target.value as PaymentPreference)} required>
+                  <select className={styles.input} value={paymentPreference} onChange={(event) => setPaymentPreference(event.target.value as PaymentPreference)} aria-invalid={Boolean(fieldErrors.paymentPreference)} aria-describedby={fieldErrors.paymentPreference ? "paymentPreference-error" : undefined} required>
                     <option value="">Select payment preference</option>
                     <option value="CARD">Credit / Debit Card</option>
                     <option value="E_TRANSFER">E-transfer</option>
@@ -562,35 +656,37 @@ function BookingPageContent() {
                     <option value="OPGT">OPGT</option>
                     <option value="OTHER">Other</option>
                   </select>
+                  <FieldError field="paymentPreference" errors={fieldErrors} />
                 </label>
                 {(paymentPreference === "CARD" || paymentPreference === "E_TRANSFER") && <p className={`${styles.fullField} ${styles.consent}`}>Payment instructions will be provided by Gray Jay Care.</p>}
                 {paymentPreference === "INVOICE" && <>
-                  <label className={styles.field}><span>Who should receive the invoice?</span><select className={styles.input} value={invoiceRecipient} onChange={(event) => setInvoiceRecipient(event.target.value)} required><option value="">Select recipient</option><option value="PATIENT_CLIENT">Patient / Client</option><option value="HOSPITAL_FACILITY">Hospital / Facility</option><option value="OTHER">Other</option></select></label>
-                  <label className={styles.field}><span>Invoice To — Full Name / Organization</span><input className={styles.input} value={invoiceName} onChange={(event) => setInvoiceName(event.target.value)} required /></label>
-                  <label className={styles.field}><span>Email Address</span><input type="email" className={styles.input} value={invoiceEmail} onChange={(event) => setInvoiceEmail(event.target.value)} required /></label>
-                  <label className={styles.field}><span>Billing Address</span><input className={styles.input} value={billingAddress} onChange={(event) => setBillingAddress(event.target.value)} required /></label>
+                  <label className={`${styles.field} ${fieldErrors.invoiceRecipient ? styles.invalidField : ""}`} data-error-field="invoiceRecipient"><span>Who should receive the invoice?</span><select className={styles.input} value={invoiceRecipient} onChange={(event) => setInvoiceRecipient(event.target.value)} aria-invalid={Boolean(fieldErrors.invoiceRecipient)} required><option value="">Select recipient</option><option value="PATIENT_CLIENT">Patient / Client</option><option value="HOSPITAL_FACILITY">Hospital / Facility</option><option value="OTHER">Other</option></select><FieldError field="invoiceRecipient" errors={fieldErrors} /></label>
+                  <label className={`${styles.field} ${fieldErrors.invoiceName ? styles.invalidField : ""}`} data-error-field="invoiceName"><span>Invoice To — Full Name / Organization</span><input className={styles.input} value={invoiceName} onChange={(event) => setInvoiceName(event.target.value)} aria-invalid={Boolean(fieldErrors.invoiceName)} required /><FieldError field="invoiceName" errors={fieldErrors} /></label>
+                  <label className={`${styles.field} ${fieldErrors.invoiceEmail ? styles.invalidField : ""}`} data-error-field="invoiceEmail"><span>Email Address</span><input type="email" className={styles.input} value={invoiceEmail} onChange={(event) => setInvoiceEmail(event.target.value)} aria-invalid={Boolean(fieldErrors.invoiceEmail)} required /><FieldError field="invoiceEmail" errors={fieldErrors} /></label>
+                  <label className={`${styles.field} ${fieldErrors.billingAddress ? styles.invalidField : ""}`} data-error-field="billingAddress"><span>Billing Address</span><input className={styles.input} value={billingAddress} onChange={(event) => setBillingAddress(event.target.value)} aria-invalid={Boolean(fieldErrors.billingAddress)} required /><FieldError field="billingAddress" errors={fieldErrors} /></label>
                   <label className={styles.field}><span>Purchase Order / Reference Number <small>(if applicable)</small></span><input className={styles.input} value={purchaseOrderReference} onChange={(event) => setPurchaseOrderReference(event.target.value)} /></label>
                 </>}
                 {paymentPreference === "DIRECT_BILLING" && <>
-                  <label className={styles.field}><span>Account / Organization Name</span><input className={styles.input} value={billingOrganization} onChange={(event) => setBillingOrganization(event.target.value)} required /></label>
+                  <label className={`${styles.field} ${fieldErrors.billingOrganization ? styles.invalidField : ""}`} data-error-field="billingOrganization"><span>Account / Organization Name</span><input className={styles.input} value={billingOrganization} onChange={(event) => setBillingOrganization(event.target.value)} aria-invalid={Boolean(fieldErrors.billingOrganization)} required /><FieldError field="billingOrganization" errors={fieldErrors} /></label>
                   <label className={styles.field}><span>Account Number <small>(if applicable)</small></span><input className={styles.input} value={billingAccountNumber} onChange={(event) => setBillingAccountNumber(event.target.value)} /></label>
-                  <label className={styles.field}><span>Contact Person</span><input className={styles.input} value={billingContactPerson} onChange={(event) => setBillingContactPerson(event.target.value)} required /></label>
+                  <label className={`${styles.field} ${fieldErrors.billingContactPerson ? styles.invalidField : ""}`} data-error-field="billingContactPerson"><span>Contact Person</span><input className={styles.input} value={billingContactPerson} onChange={(event) => setBillingContactPerson(event.target.value)} aria-invalid={Boolean(fieldErrors.billingContactPerson)} required /><FieldError field="billingContactPerson" errors={fieldErrors} /></label>
                   <label className={styles.field}><span>Purchase Order / Reference Number <small>(if applicable)</small></span><input className={styles.input} value={purchaseOrderReference} onChange={(event) => setPurchaseOrderReference(event.target.value)} /></label>
                 </>}
                 {paymentPreference === "INSURANCE" && <>
-                  <label className={styles.field}><span>Insurance Company</span><input className={styles.input} value={insuranceCompany} onChange={(event) => setInsuranceCompany(event.target.value)} required /></label>
-                  <label className={styles.field}><span>Claim / Reference Number</span><input className={styles.input} value={insuranceClaimNumber} onChange={(event) => setInsuranceClaimNumber(event.target.value)} required /></label>
+                  <label className={`${styles.field} ${fieldErrors.insuranceCompany ? styles.invalidField : ""}`} data-error-field="insuranceCompany"><span>Insurance Company</span><input className={styles.input} value={insuranceCompany} onChange={(event) => setInsuranceCompany(event.target.value)} aria-invalid={Boolean(fieldErrors.insuranceCompany)} required /><FieldError field="insuranceCompany" errors={fieldErrors} /></label>
+                  <label className={`${styles.field} ${fieldErrors.insuranceClaimNumber ? styles.invalidField : ""}`} data-error-field="insuranceClaimNumber"><span>Claim / Reference Number</span><input className={styles.input} value={insuranceClaimNumber} onChange={(event) => setInsuranceClaimNumber(event.target.value)} aria-invalid={Boolean(fieldErrors.insuranceClaimNumber)} required /><FieldError field="insuranceClaimNumber" errors={fieldErrors} /></label>
                   <label className={styles.field}><span>Policy Number <small>(if required)</small></span><input className={styles.input} value={insurancePolicyNumber} onChange={(event) => setInsurancePolicyNumber(event.target.value)} /></label>
                 </>}
-                {paymentPreference === "OPGT" && <><label className={styles.field}><span>OPGT Client / Account Information</span><input className={styles.input} value={opgtClientInformation} onChange={(event) => setOpgtClientInformation(event.target.value)} required /></label><label className={styles.field}><span>Contact Person <small>(if applicable)</small></span><input className={styles.input} value={opgtContactPerson} onChange={(event) => setOpgtContactPerson(event.target.value)} /></label></>}
-                {paymentPreference === "OTHER" && <label className={`${styles.field} ${styles.fullField}`}><span>Please provide payment details</span><textarea className={styles.input} rows={3} value={otherPaymentDetails} onChange={(event) => setOtherPaymentDetails(event.target.value)} required /><small>Payment arrangements will be reviewed and confirmed by Gray Jay Care before transportation is finalized.</small></label>}
+                {paymentPreference === "OPGT" && <><label className={`${styles.field} ${fieldErrors.opgtClientInformation ? styles.invalidField : ""}`} data-error-field="opgtClientInformation"><span>OPGT Client / Account Information</span><input className={styles.input} value={opgtClientInformation} onChange={(event) => setOpgtClientInformation(event.target.value)} aria-invalid={Boolean(fieldErrors.opgtClientInformation)} required /><FieldError field="opgtClientInformation" errors={fieldErrors} /></label><label className={styles.field}><span>Contact Person <small>(if applicable)</small></span><input className={styles.input} value={opgtContactPerson} onChange={(event) => setOpgtContactPerson(event.target.value)} /></label></>}
+                {paymentPreference === "OTHER" && <label className={`${styles.field} ${styles.fullField} ${fieldErrors.otherPaymentDetails ? styles.invalidField : ""}`} data-error-field="otherPaymentDetails"><span>Please provide payment details</span><textarea className={styles.input} rows={3} value={otherPaymentDetails} onChange={(event) => setOtherPaymentDetails(event.target.value)} aria-invalid={Boolean(fieldErrors.otherPaymentDetails)} required /><small>Payment arrangements will be reviewed and confirmed by Gray Jay Care before transportation is finalized.</small><FieldError field="otherPaymentDetails" errors={fieldErrors} /></label>}
                 {extraAttendant && (
-                  <label className={styles.field}>
+                  <label className={`${styles.field} ${fieldErrors.extraAttendantHours ? styles.invalidField : ""}`} data-error-field="extraAttendantHours">
                     <span>Extra attendant time</span>
                     <span className={styles.inputWithSuffix}>
-                      <input type="number" min="0.5" step="0.5" className={styles.input} value={extraAttendantHours} onChange={(event) => setExtraAttendantHours(event.target.value)} />
+                      <input type="number" min="0.5" step="0.5" className={styles.input} value={extraAttendantHours} onChange={(event) => setExtraAttendantHours(event.target.value)} aria-invalid={Boolean(fieldErrors.extraAttendantHours)} />
                       <b>hours</b>
                     </span>
+                    <FieldError field="extraAttendantHours" errors={fieldErrors} />
                   </label>
                 )}
               </div>
@@ -600,7 +696,7 @@ function BookingPageContent() {
               <SectionHeader number="07" title="Belongings and notes" copy="Share anything the transport team should know before arrival." />
               <div className={styles.formGrid}>
                 <RequirementSelect label="Will the patient have belongings?" value={belongingsRequirement} onChange={setBelongingsRequirement} styles={styles} />
-                {belongingsRequirement === "YES" && <label className={styles.field}><span>Describe the belongings</span><input className={styles.input} value={belongingsDescription} onChange={(event) => setBelongingsDescription(event.target.value)} placeholder="e.g. wheelchair, two bags, walker" required /></label>}
+                {belongingsRequirement === "YES" && <label className={`${styles.field} ${fieldErrors.belongingsDescription ? styles.invalidField : ""}`} data-error-field="belongingsDescription"><span>Describe the belongings</span><input className={styles.input} value={belongingsDescription} onChange={(event) => setBelongingsDescription(event.target.value)} placeholder="e.g. wheelchair, two bags, walker" aria-invalid={Boolean(fieldErrors.belongingsDescription)} required /><FieldError field="belongingsDescription" errors={fieldErrors} /></label>}
                 <label className={`${styles.field} ${styles.fullField}`}>
                   <span>Additional notes <small>(optional)</small></span>
                   <textarea className={styles.input} rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Entrance instructions, appointment details, transfer assistance or anything else we should know." />
@@ -650,12 +746,6 @@ function BookingPageContent() {
                     </div>
                   </div>
                 )}
-
-                {error && <p ref={errorRef} role="alert" tabIndex={-1} className={styles.error}>{error}</p>}
-                <button type="submit" disabled={submitting} className={styles.submitButton}>
-                  {submitting ? "Sending your request..." : "Request this booking"}
-                </button>
-                <p className={styles.consent}>Submitting this form requests non-emergency transportation. A dispatcher will contact you to confirm {bookingChannel === "PUBLIC" ? "availability and trip details" : "availability and final pricing"}. For a medical emergency, call 911.</p>
               </div>
             </div>
 
@@ -670,6 +760,14 @@ function BookingPageContent() {
               <p>Visa, credit card, direct deposit and cash are accepted.</p>
             </div>}
           </aside>
+
+          <div className={styles.submitArea}>
+            {error && <p ref={errorRef} role="alert" tabIndex={-1} className={styles.error}>{error}</p>}
+            <button type="submit" disabled={submitting} className={styles.submitButton}>
+              {submitting ? "Sending your request..." : "Request this booking"}
+            </button>
+            <p className={styles.consent}>Submitting this form requests non-emergency transportation. A dispatcher will contact you to confirm {bookingChannel === "PUBLIC" ? "availability and trip details" : "availability and final pricing"}. For a medical emergency, call 911.</p>
+          </div>
         </form>
 
         {bookingChannel !== "PUBLIC" && <section className={styles.rateGuide}>
@@ -697,6 +795,11 @@ function SectionHeader({ number, title, copy }: { number: string; title: string;
   );
 }
 
+function FieldError({ field, errors }: { field: BookingFieldKey; errors: BookingFieldErrors }) {
+  const message = errors[field];
+  return message ? <p id={`${field}-error`} className={styles.fieldError}>{message}</p> : null;
+}
+
 function RequirementSelect({ label, value, onChange, styles: fieldStyles }: { label: string; value: RequirementAnswer; onChange: (value: RequirementAnswer) => void; styles: typeof styles }) {
   return (
     <label className={fieldStyles.field}>
@@ -710,14 +813,15 @@ function RequirementSelect({ label, value, onChange, styles: fieldStyles }: { la
   );
 }
 
-function WeightInput({ value, unit, onValue, onUnit, styles: fieldStyles }: { value: string; unit: WeightUnit; onValue: (value: string) => void; onUnit: (unit: WeightUnit) => void; styles: typeof styles }) {
+function WeightInput({ value, unit, onValue, onUnit, error, styles: fieldStyles }: { value: string; unit: WeightUnit; onValue: (value: string) => void; onUnit: (unit: WeightUnit) => void; error?: string; styles: typeof styles }) {
   return (
-    <label className={fieldStyles.field}>
+    <label className={`${fieldStyles.field} ${error ? fieldStyles.invalidField : ""}`} data-error-field="passengerWeight">
       <span>What is the patient&apos;s approximate weight?</span>
       <span className={fieldStyles.inputWithSuffix}>
-        <input type="number" min="1" max="2200" step="0.1" className={fieldStyles.input} value={value} onChange={(event) => onValue(event.target.value)} placeholder="Enter weight" required />
+        <input type="number" min="1" max="2200" step="0.1" className={fieldStyles.input} value={value} onChange={(event) => onValue(event.target.value)} placeholder="Enter weight" aria-invalid={Boolean(error)} aria-describedby={error ? "passengerWeight-error" : undefined} required />
         <select aria-label="Weight unit" value={unit} onChange={(event) => onUnit(event.target.value as WeightUnit)}><option value="LB">lb</option><option value="KG">kg</option></select>
       </span>
+      {error && <p id="passengerWeight-error" className={fieldStyles.fieldError}>{error}</p>}
     </label>
   );
 }

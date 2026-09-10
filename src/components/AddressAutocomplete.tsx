@@ -25,6 +25,8 @@ export default function AddressAutocomplete({
   placeholder,
   required = false,
   name,
+  ariaInvalid,
+  ariaDescribedBy,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -33,6 +35,8 @@ export default function AddressAutocomplete({
   placeholder?: string;
   required?: boolean;
   name?: string;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
 }) {
   const listId = useId();
   const sessionToken = useRef(crypto.randomUUID());
@@ -144,6 +148,8 @@ export default function AddressAutocomplete({
         aria-expanded={open}
         aria-controls={listId}
         aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
       />
       {loading && <span className={styles.spinner} aria-label="Searching addresses" />}
       {open && (

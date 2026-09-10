@@ -72,6 +72,12 @@
 .input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #e4d9e9; border-radius: 11px; color: #302639; background: #fffefe; font: inherit; font-size: 14px; outline: none; box-shadow: 0 1px 2px rgba(57, 25, 72, 0.025); }
 .input:focus { border-color: #a645e8; box-shadow: 0 0 0 3px rgba(146, 43, 234, 0.1); }
 .input::placeholder { color: #aaa0ae; }
+.invalidField .input,
+.invalidField .inputWithSuffix,
+.invalidField .optionCard { border-color: #c73d4f; background: #fffafb; }
+.invalidField .input:focus,
+.invalidField .inputWithSuffix:focus-within { border-color: #b7253c; box-shadow: 0 0 0 3px rgba(183, 37, 60, 0.11); }
+.fieldError { margin-top: 7px; color: #b7253c; font-size: 12px; font-weight: 650; line-height: 1.4; }
 textarea.input { resize: vertical; }
 .segmentedControl { display: grid; grid-template-columns: 1fr 1.35fr; padding: 3px; border: 1px solid #e4d9e9; border-radius: 11px; background: #f8f4fa; }
 .segmentedControl button { min-height: 36px; padding: 6px 8px; border-radius: 8px; color: #776a7d; font-size: 12px; font-weight: 750; }
@@ -141,7 +147,9 @@ textarea.input { resize: vertical; }
 .estimatedTotal small { margin-top: 3px; color: #918495; font-size: 9px; font-weight: 500; }
 .estimatedTotal > strong { color: #922bea; font-family: var(--font-gjc-display), Georgia, serif; font-size: 27px; font-weight: 400; }
 .error { margin: 14px 0 0; padding: 10px 11px; border-radius: 10px; color: #a02e2e; background: #fff0f0; font-size: 11px; line-height: 1.45; }
-.submitButton { width: 100%; margin-top: 18px; padding: 13px 16px; border-radius: 12px; color: white; background: #922bea; font-size: 13px; font-weight: 850; box-shadow: 0 10px 22px rgba(146, 43, 234, 0.23); }
+.submitArea { grid-column: 1 / -1; padding: 24px 28px; border: 1px solid #dfc8eb; border-radius: 22px; background: white; box-shadow: 0 14px 38px rgba(77, 27, 101, 0.09); text-align: center; }
+.submitArea .error { max-width: 700px; margin: 0 auto 16px; text-align: left; }
+.submitButton { display: block; width: min(100%, 520px); margin: 0 auto; padding: 15px 20px; border-radius: 12px; color: white; background: #922bea; font-size: 14px; font-weight: 850; box-shadow: 0 10px 22px rgba(146, 43, 234, 0.23); }
 .submitButton:hover { background: #7c1ed2; transform: translateY(-1px); }
 .submitButton:disabled { cursor: wait; opacity: 0.58; transform: none; }
 .consent { margin-top: 11px; color: #716476; font-size: 12px; line-height: 1.5; text-align: center; }
