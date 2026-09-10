@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Marcellus, Source_Sans_3 } from "next/font/google";
 import styles from "./landing.module.css";
 import TidioChat from "@/components/TidioChat";
-import FloatingCallButton from "@/components/FloatingCallButton";
 import ReviewCarousel from "@/components/ReviewCarousel";
 
 const marcellus = Marcellus({
@@ -272,7 +271,7 @@ export default function Home() {
               <h2>About Gray Jay Care</h2>
               <p className={styles.aboutTagline}>Two Brothers. One Purpose. A Commitment to Care.</p>
               <p className={styles.aboutLead}>
-                Gray Jay Care was founded by two brothers with up to five years of experience in patient
+                Gray Jay Care was founded by two brothers with years of experience in patient
                 transportation. After seeing the need for safer, more reliable, on-time and compassionate service,
                 they created a family-owned company built around care.
               </p>
@@ -375,8 +374,8 @@ export default function Home() {
             </div>
             <div className={styles.mapWrap}>
               <iframe
-                title="Gray Jay Care service area in London, Ontario"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=-81.3900%2C42.8900%2C-80.9900%2C43.0900&layer=mapnik&marker=42.9849%2C-81.2453"
+                title="Gray Jay Care service area across Southwestern Ontario"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-83.3000%2C41.6000%2C-79.0000%2C44.4000&layer=mapnik&marker=42.9849%2C-81.2453"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
@@ -388,7 +387,6 @@ export default function Home() {
       <footer className={styles.footer}>
         Copyright ©{new Date().getFullYear()} Gray Jay Care. All rights reserved.
       </footer>
-      <FloatingCallButton />
       <TidioChat />
     </div>
   );
@@ -403,12 +401,16 @@ function LandingHeader() {
         </Link>
         <nav className={styles.desktopNav} aria-label="Primary navigation">
           {NAV_LINKS.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+          <Link className={styles.headerLogin} href="/login" aria-label="Sign in">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" /></svg>
+          </Link>
           <Link className={styles.headerButton} href="/book">Book Now</Link>
         </nav>
         <details className={styles.mobileMenu}>
           <summary aria-label="Open navigation menu"><span /><span /></summary>
           <nav aria-label="Mobile navigation">
             {NAV_LINKS.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+            <Link href="/login">Sign In</Link>
             <Link href="/book">Book Now</Link>
           </nav>
         </details>

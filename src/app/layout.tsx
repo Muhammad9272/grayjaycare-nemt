@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Marcellus, Source_Sans_3 } from "next/font/google";
+import FloatingCallButton from "@/components/FloatingCallButton";
 import "./globals.css";
 
 const sourceSans = Source_Sans_3({
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sourceSans.variable} ${marcellus.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <FloatingCallButton />
+      </body>
     </html>
   );
 }

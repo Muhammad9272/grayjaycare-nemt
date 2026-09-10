@@ -9,7 +9,6 @@ export default function FloatingCallButton() {
         <path d="M7 3 4 5c0 8 7 15 15 15l2-3-5-3-2 2c-3-1-5-3-6-6l2-2-3-5Z" />
       </svg>
       <span>Call Us</span>
-      <span className="hidden font-medium opacity-90 sm:inline">(519) 933-5090</span>
     </a>
   );
 }

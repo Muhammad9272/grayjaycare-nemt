@@ -74,6 +74,24 @@
   color: var(--purple);
 }
 
+.desktopNav .headerLogin {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #e6d6ee;
+  border-radius: 50%;
+  color: var(--purple);
+}
+
+.headerLogin svg {
+  width: 21px;
+  height: 21px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
 .headerButton {
   display: inline-flex;
   height: 54px;

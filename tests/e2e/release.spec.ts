@@ -346,7 +346,14 @@ test("customer and driver registration validate duplicates and approval", async 
 
 test("revised public content, reviews, contact details, and call actions are present", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" })).toHaveAttribute("href", "tel:+15199335090");
+  const globalCallAction = page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" });
+  await expect(globalCallAction).toHaveAttribute("href", "tel:+15199335090");
+  await expect(globalCallAction).toHaveText("Call Us");
+  await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+  await expect(page.getByText("Gray Jay Care was founded by two brothers with years of experience in patient transportation.", { exact: false })).toBeVisible();
+  await expect(page.getByText("up to five years of experience", { exact: false })).toHaveCount(0);
+  const serviceAreaMap = page.getByTitle("Gray Jay Care service area across Southwestern Ontario");
+  await expect(serviceAreaMap).toHaveAttribute("src", /-83\.3000%2C41\.6000%2C-79\.0000%2C44\.4000/);
   await page.getByText("Can pickup or arrival times be delayed?", { exact: true }).click();
   await expect(page.getByText("We do our best to stay on schedule. However, traffic, weather, road conditions, facility delays, or unforeseen circumstances may occasionally affect pickup or arrival times. If a delay occurs, we will keep you informed and provide an update as soon as possible.", { exact: true })).toBeVisible();
   await expect(page.getByText("Whether you have questions about our services or need assistance with booking your transportation, our team is here to help. Please reach out using the contact information below.", { exact: true })).toBeVisible();
@@ -392,7 +399,9 @@ test("revised public content, reviews, contact details, and call actions are pre
 
   for (const path of ["/book", "/careers", "/login", "/forgot-password", "/register", "/register/driver"]) {
     await page.goto(path);
-    await expect(page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" })).toHaveAttribute("href", "tel:+15199335090");
+    const callAction = page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" });
+    await expect(callAction).toHaveAttribute("href", "tel:+15199335090");
+    await expect(callAction).toHaveText("Call Us");
   }
 });
 
@@ -418,6 +427,8 @@ test("booking form shows an error below every missing field and submits from the
   await expect(page.getByText("Please correct the highlighted fields below.", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Contact person's full name")).toBeFocused();
   await expect(page.getByLabel("Contact person's full name")).toHaveAttribute("aria-invalid", "true");
+  const requiredLabel = page.getByText("Contact person's full name", { exact: true });
+  expect(await requiredLabel.evaluate((element) => getComputedStyle(element, "::after").content)).toContain("*");
 
   const finalSection = page.getByRole("heading", { name: "Belongings and notes" }).locator("xpath=ancestor::section");
   const submitArea = submitButton.locator("xpath=parent::div");
@@ -604,7 +615,10 @@ test("revised booking conditionals expose only the approved choices and guidance
   await expect(page.getByLabel("Minutes")).toBeVisible();
   await expect(page.getByText("Waiting time charges may apply based on the actual waiting time.", { exact: true })).toBeVisible();
 
-  await page.getByLabel("Does the patient weigh more than 250 lb").selectOption("YES");
+  const patientOver250 = page.getByLabel("Does the patient weigh more than 250 lb");
+  await expect(patientOver250).toHaveValue("NO");
+  await expect(page.getByText("Bariatric support is available for wheelchair and stretcher transportation.", { exact: true })).toHaveCount(0);
+  await patientOver250.selectOption("YES");
   await expect(page.getByPlaceholder("Enter weight")).toBeVisible();
   await expect(page.getByLabel("Weight unit")).toBeVisible();
 
@@ -624,7 +638,7 @@ test("revised booking conditionals expose only the approved choices and guidance
   await assistance.selectOption("BARIATRIC");
   await expect(page.getByText("Bariatric support is available for wheelchair and stretcher transportation.", { exact: true })).toBeVisible();
   await expect(page.getByPlaceholder("Enter weight")).toHaveCount(1);
-  await page.getByLabel("Does the patient weigh more than 250 lb").selectOption("NO");
+  await patientOver250.selectOption("NO");
   await expect(page.getByPlaceholder("Enter weight")).toHaveCount(1);
 
   await page.getByLabel("Does the patient require oxygen during transportation?").selectOption("YES");
