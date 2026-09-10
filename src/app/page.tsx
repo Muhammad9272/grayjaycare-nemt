@@ -17,6 +17,15 @@ const sourceSans = Source_Sans_3({
   variable: "--font-landing-body",
 });
 
+const PARTNERS = [
+  { src: "/site/partner-sienna.png", alt: "Sienna Senior Living" },
+  { src: "/site/partner-bluewater-health.png", alt: "Bluewater Health" },
+  { src: "/site/partner-windsor-regional.png", alt: "Windsor Regional Hospital" },
+  { src: "/site/partner-lhsc.png", alt: "London Health Sciences Centre" },
+  { src: "/site/partner-cambridge-memorial.png", alt: "Cambridge Memorial Hospital" },
+  { src: null, alt: "Meadow Park Long-Term Care" },
+];
+
 const FEATURES = [
   {
     icon: "shield" as const,
@@ -217,19 +226,25 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={styles.partners} aria-label="Care partners">
-          <div className={styles.partnerContent}>
-            <p className={styles.eyebrow}>Our Care Partners</p>
-            <h2>Connected across the circle of care</h2>
-            <p>
-              We work alongside hospitals, clinics, long-term care homes, retirement residences, community
-              organizations, families and caregivers throughout Southwestern Ontario.
-            </p>
-            <div className={styles.partnerTypes} aria-label="Types of care partners">
-              <span>Hospitals &amp; clinics</span>
-              <span>Long-term care homes</span>
-              <span>Retirement residences</span>
-              <span>Families &amp; caregivers</span>
+        <section className={styles.partners} aria-label="Healthcare partners">
+          <div className={styles.partnerScroller} tabIndex={0} aria-label="Scrollable healthcare partner logos">
+            <div className={styles.partnerTrack}>
+              {[0, 1].map((groupIndex) => (
+                <div className={styles.partnerGroup} key={groupIndex} aria-hidden={groupIndex === 1 || undefined}>
+                  {PARTNERS.map((partner) => (
+                    <div className={styles.partnerLogo} key={`${groupIndex}-${partner.alt}`}>
+                      {partner.src ? (
+                        <Image src={partner.src} alt={groupIndex === 0 ? partner.alt : ""} width={180} height={90} />
+                      ) : (
+                        <span className={styles.meadowLogo} aria-label={groupIndex === 0 ? partner.alt : undefined}>
+                          <b>Meadow Park</b>
+                          <small>Long-Term Care</small>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
         </section>

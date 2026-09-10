@@ -407,54 +407,85 @@
 
 .partners {
   display: flex;
-  min-height: 240px;
+  height: 240px;
   align-items: center;
-  padding: 42px 30px;
-  border-bottom: 1px solid #f3e9f8;
+  overflow: hidden;
   background: #fff;
-  text-align: center;
 }
 
-.partnerContent {
-  width: min(1120px, 100%);
-  margin: 0 auto;
+.partnerScroller {
+  width: 100%;
+  overflow: hidden;
+  outline-offset: -4px;
 }
 
-.partnerContent h2 {
-  margin: 8px 0 10px;
-  color: var(--heading);
-  font-family: var(--font-landing-display), serif;
-  font-size: clamp(28px, 2.2vw, 38px);
-  font-weight: 400;
-  line-height: 1.2;
-}
-
-.partnerContent > p:not(.eyebrow) {
-  max-width: 850px;
-  margin: 0 auto;
-  color: var(--body);
-  font-size: 16px;
-  line-height: 1.55;
-}
-
-.partnerTypes {
-  display: grid;
-  margin-top: 25px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.partnerTypes span {
+.partnerTrack {
   display: flex;
-  min-height: 46px;
+  width: max-content;
+  animation: partnerScroll 30s linear infinite;
+}
+
+.partnerScroller:hover .partnerTrack,
+.partnerScroller:focus .partnerTrack {
+  animation-play-state: paused;
+}
+
+.partnerGroup {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  padding-right: 64px;
+}
+
+.partnerLogo {
+  display: flex;
+  width: 170px;
+  height: 110px;
+  flex: 0 0 170px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #ead3f7;
-  border-radius: 999px;
-  background: #fcf7ff;
-  color: #67239a;
-  font-size: 14px;
-  font-weight: 650;
+}
+
+.partnerLogo img {
+  width: auto;
+  max-width: 155px;
+  height: auto;
+  max-height: 92px;
+  object-fit: contain;
+}
+
+.meadowLogo {
+  position: relative;
+  display: flex;
+  color: #8c4b39;
+  font-family: Georgia, serif;
+  text-align: center;
+  text-transform: uppercase;
+  flex-direction: column;
+}
+
+.meadowLogo::before {
+  width: 70px;
+  height: 12px;
+  border-top: 2px solid #ad8265;
+  border-bottom: 1px solid #ad8265;
+  content: "";
+  margin: 0 auto 4px;
+  transform: skewX(-28deg);
+}
+
+.meadowLogo b {
+  font-size: 15px;
+  letter-spacing: 0.05em;
+}
+
+.meadowLogo small {
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+
+@keyframes partnerScroll {
+  to { transform: translateX(-50%); }
 }
 
 .about {
@@ -1617,28 +1648,36 @@
   }
 
   .partners {
-    min-height: 0;
-    padding: 48px 20px;
+    height: 180px;
   }
 
-  .partnerContent h2 {
-    font-size: 30px;
+  .partnerScroller {
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .partnerContent > p:not(.eyebrow) {
-    font-size: 15px;
+  .partnerScroller::-webkit-scrollbar {
+    display: none;
   }
 
-  .partnerTypes {
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
+  .partnerTrack {
+    animation-duration: 24s;
   }
 
-  .partnerTypes span {
-    min-height: 54px;
-    padding: 7px 10px;
-    font-size: 13px;
-    line-height: 1.25;
+  .partnerGroup {
+    gap: 34px;
+    padding-right: 34px;
+  }
+
+  .partnerLogo {
+    width: 135px;
+    height: 96px;
+    flex-basis: 135px;
+  }
+
+  .partnerLogo img {
+    max-width: 125px;
+    max-height: 78px;
   }
 
   .about {
@@ -1998,6 +2037,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .partnerScroller {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .partnerTrack {
+    animation: none;
+  }
+
   .reviewViewport {
     overflow-x: auto;
     scroll-behavior: auto;

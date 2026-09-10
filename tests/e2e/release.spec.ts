@@ -353,11 +353,14 @@ test("revised public content, reviews, contact details, and call actions are pre
   await expect(page.getByText("support@grayjaycare.com", { exact: true })).toBeVisible();
   await expect(page.getByText("support@GrayJayCare.com", { exact: true })).toHaveCount(0);
 
-  for (const removed of ["Sienna Senior Living", "Bluewater Health", "Windsor Regional Hospital", "London Health Sciences Centre", "Meadow Park Long-Term Care", "Nature", "Rodva", "Homepage"]) {
+  for (const removed of ["Nature", "Rodva", "Homepage"]) {
     await expect(page.getByText(removed, { exact: true })).toHaveCount(0);
   }
-  await expect(page.locator('[aria-label="Care partners"]')).toBeVisible();
-  await expect(page.getByText("Connected across the circle of care", { exact: true })).toBeVisible();
+  const partnerScroller = page.getByRole("region", { name: "Healthcare partners" }).getByLabel("Scrollable healthcare partner logos");
+  await expect(partnerScroller).toBeVisible();
+  await expect(page.getByAltText("Sienna Senior Living")).toBeVisible();
+  await expect(page.getByAltText("Bluewater Health")).toBeVisible();
+  await expect(page.getByAltText("Windsor Regional Hospital")).toBeVisible();
   await expect(page.getByRole("link", { name: "View our latest Google reviews" })).toHaveAttribute("href", /share\.google/);
   await expect(page.getByText("9 September 2026", { exact: true })).toBeVisible();
   const firstReview = page.locator("article").filter({ hasText: "Michele Maenpaa" }).first();
