@@ -67,7 +67,7 @@
 .field { display: block; min-width: 0; }
 .field > span:first-child,
 .field > legend { display: block; margin-bottom: 7px; color: #493b50; font-size: 13px; font-weight: 750; }
-.field > small { display: block; margin: -2px 0 8px; color: #827688; font-size: 11px; font-weight: 400; }
+.field > small { display: block; margin: -2px 0 8px; color: #716476; font-size: 12px; font-weight: 400; }
 .field span small { color: #8d8192; font-weight: 400; }
 .input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #e4d9e9; border-radius: 11px; color: #302639; background: #fffefe; font: inherit; font-size: 14px; outline: none; box-shadow: 0 1px 2px rgba(57, 25, 72, 0.025); }
 .input:focus { border-color: #a645e8; box-shadow: 0 0 0 3px rgba(146, 43, 234, 0.1); }
@@ -78,10 +78,11 @@ textarea.input { resize: vertical; }
 .segmentedControl .segmentActive { color: #701ba3; background: white; box-shadow: 0 3px 9px rgba(74, 28, 96, 0.11); }
 .serviceGrid { display: grid; gap: 11px; }
 .serviceChoice { position: relative; display: grid; grid-template-columns: auto 1fr; padding: 15px; border: 1px solid #e6dce9; border-radius: 14px; cursor: pointer; background: #fff; }
+.serviceChoice:focus-within { outline: 3px solid rgba(146, 43, 234, 0.3); outline-offset: 2px; border-color: #922bea; }
 .serviceChoice > input { position: absolute; opacity: 0; pointer-events: none; }
 .radioMark { grid-row: 1 / span 3; width: 18px; height: 18px; margin: 1px 11px 0 0; border: 2px solid #d7c7df; border-radius: 50%; }
 .serviceChoice strong { color: #423348; font-size: 14px; }
-.serviceChoice small { margin-top: 3px; color: #827589; font-size: 11px; line-height: 1.35; }
+.serviceChoice small { margin-top: 3px; color: #716476; font-size: 12px; line-height: 1.35; }
 .serviceChoice em { margin-top: 8px; color: #922bea; font-size: 10px; font-style: normal; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
 .choiceActive { border-color: #af5be9; background: #fcf7ff; box-shadow: 0 0 0 2px rgba(146, 43, 234, 0.07); }
 .choiceActive .radioMark { border: 5px solid #922bea; background: white; }
@@ -143,7 +144,11 @@ textarea.input { resize: vertical; }
 .submitButton { width: 100%; margin-top: 18px; padding: 13px 16px; border-radius: 12px; color: white; background: #922bea; font-size: 13px; font-weight: 850; box-shadow: 0 10px 22px rgba(146, 43, 234, 0.23); }
 .submitButton:hover { background: #7c1ed2; transform: translateY(-1px); }
 .submitButton:disabled { cursor: wait; opacity: 0.58; transform: none; }
-.consent { margin-top: 11px; color: #938798; font-size: 9px; line-height: 1.5; text-align: center; }
+.consent { margin-top: 11px; color: #716476; font-size: 12px; line-height: 1.5; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingFare span { animation: none; }
+}
 .policyCard { margin-top: 18px; padding: 18px 20px; border: 1px solid #e8ddee; border-radius: 18px; background: rgba(255, 255, 255, 0.72); }
 .policyCard h3 { color: #4a3850; font-family: var(--font-gjc-body), sans-serif; font-size: 12px; font-weight: 850; letter-spacing: 0.03em; }
 .policyCard ul { display: grid; gap: 8px; margin-top: 12px; }

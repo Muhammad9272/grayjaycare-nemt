@@ -103,18 +103,34 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               <Field label="Trip location" value={trip.isOutOfCity ? "Outside London, ON" : "Within London, ON"} />
               <Field label="Wait time" value={`${trip.estimatedWaitMinutes} min`} />
               <Field label="Bariatric" value={trip.isBariatric ? "Yes" : "No"} />
+              <Field label="Over 250 lb / 113 kg" value={humanize(trip.patientOver250)} />
+              <Field label="Special assistance" value={humanize(trip.specialAssistance)} />
+              {trip.stairChairWeightEligible && <Field label="Stair-chair weight eligible" value={humanize(trip.stairChairWeightEligible)} />}
               <Field label="Oxygen" value={`${humanize(trip.oxygenRequirement)}${trip.oxygenLitresPerMinute ? ` · ${trip.oxygenLitresPerMinute} LPM` : ""}`} />
               <Field label="Isolation precautions" value={`${humanize(trip.isolationRequirement)}${trip.isolationDetails ? ` · ${trip.isolationDetails}` : ""}`} />
-              <Field label="DNR paperwork" value={humanize(trip.dnrRequirement)} />
-              <Field label="Belongings" value={trip.hasBelongings ? trip.belongingsDescription || "Yes" : "No"} />
+              <Field label="DNR paperwork" value={`${humanize(trip.dnrRequirement)}${trip.dnrDocumentationConfirmed ? " · documentation confirmed for pickup" : ""}`} />
+              <Field label="Belongings" value={`${humanize(trip.belongingsRequirement)}${trip.belongingsDescription ? ` · ${trip.belongingsDescription}` : ""}`} />
               <Field label="Patient escorts" value={String(trip.escortCount)} />
               <Field label="Payment preference" value={trip.paymentPreference ? humanize(trip.paymentPreference) : "Not specified"} />
-              <Field label="Medical documents" value={trip.medicalDocumentsAvailable ? "Available — arrange secure collection" : "Not indicated"} />
+              {trip.invoiceRecipient && <Field label="Invoice recipient" value={humanize(trip.invoiceRecipient)} />}
+              {trip.invoiceName && <Field label="Invoice to" value={trip.invoiceName} />}
+              {trip.invoiceEmail && <Field label="Invoice email" value={trip.invoiceEmail} />}
+              {trip.billingAddress && <Field label="Billing address" value={trip.billingAddress} />}
+              {trip.billingOrganization && <Field label="Billing organization" value={trip.billingOrganization} />}
+              {trip.billingAccountNumber && <Field label="Billing account" value={trip.billingAccountNumber} />}
+              {trip.billingContactPerson && <Field label="Billing contact" value={trip.billingContactPerson} />}
+              {trip.purchaseOrderReference && <Field label="PO / reference" value={trip.purchaseOrderReference} />}
+              {trip.insuranceCompany && <Field label="Insurance company" value={trip.insuranceCompany} />}
+              {trip.insuranceClaimNumber && <Field label="Claim / reference" value={trip.insuranceClaimNumber} />}
+              {trip.insurancePolicyNumber && <Field label="Policy number" value={trip.insurancePolicyNumber} />}
+              {trip.opgtClientInformation && <Field label="OPGT client / account" value={trip.opgtClientInformation} />}
+              {trip.opgtContactPerson && <Field label="OPGT contact" value={trip.opgtContactPerson} />}
+              {trip.otherPaymentDetails && <Field label="Other payment details" value={trip.otherPaymentDetails} />}
               <Field
                 label="Extra attendant"
                 value={trip.extraAttendant ? `Yes (${trip.extraAttendantHours ?? 0} hr)` : "No"}
               />
-              {trip.passengerWeightKg && <Field label="Passenger weight" value={`${trip.passengerWeightKg} kg`} />}
+              {trip.passengerWeightValue && <Field label="Passenger weight" value={`${trip.passengerWeightValue} ${trip.passengerWeightUnit?.toLowerCase()}`} />}
               <Field label="Source" value={trip.source.replace("_", " ")} />
             </dl>
             {trip.notes && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,9 +14,11 @@ import TidioChat from "@/components/TidioChat";
 
 type MobilityType = "AMBULATORY" | "WHEELCHAIR" | "STRETCHER";
 type PickupTimePreference = "SPECIFIC" | "ASAP" | "FLEXIBLE";
-type ReturnTripType = "ONE_WAY" | "SCHEDULED_RETURN" | "WAIT_AND_RETURN" | "CALL_FOR_RETURN";
-type PaymentPreference = "CASH" | "CARD" | "E_TRANSFER" | "INVOICE" | "INSURANCE" | "OPGT" | "OTHER";
+type ReturnTripType = "ONE_WAY" | "SCHEDULED_RETURN" | "WAIT_AND_RETURN";
+type PaymentPreference = "CARD" | "E_TRANSFER" | "INVOICE" | "DIRECT_BILLING" | "INSURANCE" | "OPGT" | "OTHER";
 type RequirementAnswer = "NO" | "YES" | "NOT_SURE";
+type WeightUnit = "LB" | "KG";
+type SpecialAssistance = "NO" | "STAIR_CHAIR" | "BARIATRIC" | "NOT_SURE";
 type BookingChannel = "PUBLIC" | "PHONE" | "HOSPITAL";
 
 type Breakdown = {
@@ -41,10 +43,18 @@ type QuoteResponse = {
 };
 
 const SERVICE_OPTIONS: { value: MobilityType; title: string; copy: string }[] = [
-  { value: "AMBULATORY", title: "Ambulatory", copy: "Walk-on passenger with caring assistance" },
-  { value: "WHEELCHAIR", title: "Wheelchair", copy: "Accessible van and securement support" },
-  { value: "STRETCHER", title: "Stretcher", copy: "Specialized transfer with trained attendants" },
+  { value: "AMBULATORY", title: "Ambulatory", copy: "Passenger who can walk independently or with limited assistance" },
+  { value: "WHEELCHAIR", title: "Wheelchair", copy: "Wheelchair transportation with securement support" },
+  { value: "STRETCHER", title: "Stretcher", copy: "Non-emergency stretcher transportation with trained attendants" },
 ];
+
+function addMinutesToLocalDateTime(value: string, minutes: number) {
+  if (!value) return "";
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() + minutes);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export default function BookPage() {
   return (
@@ -74,19 +84,25 @@ function BookingPageContent() {
   const [pickupTimePreference, setPickupTimePreference] = useState<PickupTimePreference>("SPECIFIC");
   const [mobilityType, setMobilityType] = useState<MobilityType>("AMBULATORY");
   const [isOutOfCity, setIsOutOfCity] = useState(false);
-  const [isBariatric, setIsBariatric] = useState(false);
+  const [patientOver250, setPatientOver250] = useState<RequirementAnswer>("NOT_SURE");
+  const [passengerWeight, setPassengerWeight] = useState("");
+  const [passengerWeightUnit, setPassengerWeightUnit] = useState<WeightUnit>("LB");
+  const [specialAssistance, setSpecialAssistance] = useState<SpecialAssistance>("NO");
+  const [stairChairWeightEligible, setStairChairWeightEligible] = useState<RequirementAnswer>("NOT_SURE");
   const [oxygenRequirement, setOxygenRequirement] = useState<RequirementAnswer>("NO");
   const [oxygenLitresPerMinute, setOxygenLitresPerMinute] = useState("");
   const [isolationRequirement, setIsolationRequirement] = useState<RequirementAnswer>("NO");
   const [isolationDetails, setIsolationDetails] = useState("");
   const [dnrRequirement, setDnrRequirement] = useState<RequirementAnswer>("NO");
-  const [hasBelongings, setHasBelongings] = useState(false);
+  const [dnrDocumentationConfirmed, setDnrDocumentationConfirmed] = useState(false);
+  const [belongingsRequirement, setBelongingsRequirement] = useState<RequirementAnswer>("NO");
   const [belongingsDescription, setBelongingsDescription] = useState("");
   const [escortCount, setEscortCount] = useState("0");
+  const [accompanimentChoice, setAccompanimentChoice] = useState("0");
   const [extraAttendant, setExtraAttendant] = useState(false);
   const [extraAttendantHours, setExtraAttendantHours] = useState("1");
-  const [waitMinutes, setWaitMinutes] = useState("0");
-  const [passengerWeightLb, setPassengerWeightLb] = useState("");
+  const [waitHours, setWaitHours] = useState("1");
+  const [waitMinuteRemainder, setWaitMinuteRemainder] = useState("0");
   const [notes, setNotes] = useState("");
   const [returnTripType, setReturnTripType] = useState<ReturnTripType>("ONE_WAY");
   const [returnScheduledAt, setReturnScheduledAt] = useState("");
@@ -97,7 +113,20 @@ function BookingPageContent() {
   const [guestPhone, setGuestPhone] = useState("");
   const [contactPhoneExtension, setContactPhoneExtension] = useState("");
   const [paymentPreference, setPaymentPreference] = useState<PaymentPreference | "">("");
-  const [medicalDocumentsAvailable, setMedicalDocumentsAvailable] = useState(false);
+  const [invoiceRecipient, setInvoiceRecipient] = useState("");
+  const [invoiceName, setInvoiceName] = useState("");
+  const [invoiceEmail, setInvoiceEmail] = useState("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [billingOrganization, setBillingOrganization] = useState("");
+  const [billingAccountNumber, setBillingAccountNumber] = useState("");
+  const [billingContactPerson, setBillingContactPerson] = useState("");
+  const [purchaseOrderReference, setPurchaseOrderReference] = useState("");
+  const [insuranceCompany, setInsuranceCompany] = useState("");
+  const [insuranceClaimNumber, setInsuranceClaimNumber] = useState("");
+  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState("");
+  const [opgtClientInformation, setOpgtClientInformation] = useState("");
+  const [opgtContactPerson, setOpgtContactPerson] = useState("");
+  const [otherPaymentDetails, setOtherPaymentDetails] = useState("");
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [returnQuote, setReturnQuote] = useState<QuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -108,6 +137,11 @@ function BookingPageContent() {
     emailSent: boolean;
   } | null>(null);
   const [minimumPickupTime] = useState(() => serviceDateTimeInputValue(new Date(Date.now() + 5 * 60_000)));
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   const readyForQuote = useMemo(
     () => pickupAddress.length > 3 && dropoffAddress.length > 3 && scheduledAt.length > 0,
@@ -115,7 +149,14 @@ function BookingPageContent() {
   );
   const hasReturnLeg = returnTripType === "SCHEDULED_RETURN" || returnTripType === "WAIT_AND_RETURN";
   const isRoundTrip = returnTripType !== "ONE_WAY";
-  const readyForReturnQuote = hasReturnLeg && readyForQuote && returnScheduledAt.length > 0;
+  const waitMinutes = returnTripType === "WAIT_AND_RETURN"
+    ? String(Number(waitHours) * 60 + Number(waitMinuteRemainder))
+    : "0";
+  const effectiveReturnScheduledAt = returnTripType === "WAIT_AND_RETURN"
+    ? addMinutesToLocalDateTime(scheduledAt, Number(waitMinutes))
+    : returnScheduledAt;
+  const isBariatric = specialAssistance === "BARIATRIC";
+  const readyForReturnQuote = hasReturnLeg && readyForQuote && effectiveReturnScheduledAt.length > 0;
 
   const commonFareFields = {
     pickupAddress,
@@ -185,7 +226,8 @@ function BookingPageContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...commonFareFields,
-            scheduledAt: torontoLocalDateTimeToIso(returnScheduledAt),
+            waitMinutes: 0,
+            scheduledAt: torontoLocalDateTimeToIso(effectiveReturnScheduledAt),
             isReturnLeg: true,
           }),
           signal: controller.signal,
@@ -214,7 +256,7 @@ function BookingPageContent() {
     oxygenRequirement,
     extraAttendant,
     extraAttendantHours,
-    returnScheduledAt,
+    effectiveReturnScheduledAt,
   ]);
 
   const combinedTotal =
@@ -229,7 +271,7 @@ function BookingPageContent() {
       setError("We couldn't determine the trip distance. Please enter an estimated distance in kilometres.");
       return;
     }
-    if (hasReturnLeg && !returnScheduledAt) {
+    if (returnTripType === "SCHEDULED_RETURN" && !effectiveReturnScheduledAt) {
       setError("Please choose a return date and time for your round trip.");
       return;
     }
@@ -260,19 +302,37 @@ function BookingPageContent() {
           pickupTimePreference,
           returnTripType,
           escortCount: Number(escortCount),
+          patientOver250,
+          passengerWeightValue: passengerWeight && (patientOver250 === "YES" || specialAssistance === "BARIATRIC") ? Number(passengerWeight) : undefined,
+          passengerWeightUnit: passengerWeight && (patientOver250 === "YES" || specialAssistance === "BARIATRIC") ? passengerWeightUnit : undefined,
+          specialAssistance,
+          stairChairWeightEligible: specialAssistance === "STAIR_CHAIR" ? stairChairWeightEligible : undefined,
           oxygenRequirement,
           oxygenLitresPerMinute: oxygenRequirement === "YES" ? Number(oxygenLitresPerMinute) : undefined,
           isolationRequirement,
           isolationDetails: isolationRequirement === "YES" ? isolationDetails : undefined,
           dnrRequirement,
-          hasBelongings,
-          belongingsDescription: hasBelongings ? belongingsDescription : undefined,
+          dnrDocumentationConfirmed,
+          belongingsRequirement,
+          belongingsDescription: belongingsRequirement === "YES" ? belongingsDescription : undefined,
           paymentPreference: paymentPreference || undefined,
-          medicalDocumentsAvailable,
-          passengerWeightKg: passengerWeightLb ? Math.round(Number(passengerWeightLb) * 0.453592) : undefined,
+          invoiceRecipient: paymentPreference === "INVOICE" ? invoiceRecipient || undefined : undefined,
+          invoiceName: paymentPreference === "INVOICE" ? invoiceName || undefined : undefined,
+          invoiceEmail: paymentPreference === "INVOICE" ? invoiceEmail || undefined : undefined,
+          billingAddress: paymentPreference === "INVOICE" ? billingAddress || undefined : undefined,
+          billingOrganization: paymentPreference === "DIRECT_BILLING" ? billingOrganization || undefined : undefined,
+          billingAccountNumber: paymentPreference === "DIRECT_BILLING" ? billingAccountNumber || undefined : undefined,
+          billingContactPerson: paymentPreference === "DIRECT_BILLING" ? billingContactPerson || undefined : undefined,
+          purchaseOrderReference: paymentPreference === "INVOICE" || paymentPreference === "DIRECT_BILLING" ? purchaseOrderReference || undefined : undefined,
+          insuranceCompany: paymentPreference === "INSURANCE" ? insuranceCompany || undefined : undefined,
+          insuranceClaimNumber: paymentPreference === "INSURANCE" ? insuranceClaimNumber || undefined : undefined,
+          insurancePolicyNumber: paymentPreference === "INSURANCE" ? insurancePolicyNumber || undefined : undefined,
+          opgtClientInformation: paymentPreference === "OPGT" ? opgtClientInformation || undefined : undefined,
+          opgtContactPerson: paymentPreference === "OPGT" ? opgtContactPerson || undefined : undefined,
+          otherPaymentDetails: paymentPreference === "OTHER" ? otherPaymentDetails || undefined : undefined,
           notes: notes || undefined,
           isRoundTrip,
-          returnScheduledAt: hasReturnLeg ? torontoLocalDateTimeToIso(returnScheduledAt) : undefined,
+          returnScheduledAt: returnTripType === "SCHEDULED_RETURN" ? torontoLocalDateTimeToIso(effectiveReturnScheduledAt) : undefined,
           returnDistanceKm: hasReturnLeg && distanceKm ? distanceKm : undefined,
         }),
       });
@@ -374,7 +434,7 @@ function BookingPageContent() {
               Tell us what the passenger needs. Our dispatcher will review the request and contact you to confirm the ride.
             </p>
             <div className={styles.trustRow}>
-              <span><CheckIcon /> No account required</span>
+              <span><CheckIcon /> No account setup required</span>
               <span><CheckIcon /> Simple request process</span>
               <span><CheckIcon /> Dispatcher confirmation</span>
             </div>
@@ -390,7 +450,7 @@ function BookingPageContent() {
         <form onSubmit={handleSubmit} className={styles.bookingLayout}>
           <div className={styles.formColumn}>
             <section className={styles.sectionCard}>
-              <SectionHeader number="01" title="Contact information" copy="Who should our dispatcher contact to confirm the ride?" />
+              <SectionHeader number="01" title="Contact information" copy="Who should our dispatcher contact to confirm this booking?" />
               <div className={styles.formGrid}>
                 <label className={styles.field}>
                   <span>Contact person&apos;s full name</span>
@@ -407,58 +467,56 @@ function BookingPageContent() {
                 <label className={styles.field}>
                   <span>Email address</span>
                   <input type="email" className={styles.input} autoComplete="email" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} required />
-                  <small>We&apos;ll send the booking reference and portal access here.</small>
+                  <small>We&apos;ll send the booking confirmation and reference number to this contact.</small>
                 </label>
               </div>
             </section>
 
             <section className={styles.sectionCard}>
-              <SectionHeader number="02" title="Patient information" copy="Tell us who will be travelling and what support they may need." />
+              <SectionHeader number="02" title="Patient information" copy="Tell us who will be travelling and what assistance they may require." />
               <div className={styles.formGrid}>
                 <label className={styles.field}>
                   <span>Patient&apos;s full name</span>
                   <input className={styles.input} value={patientName} onChange={(event) => setPatientName(event.target.value)} required />
                 </label>
                 <label className={styles.field}>
-                  <span>Medical record number (MRN) <small>{paymentPreference === "INVOICE" ? "(required for hospital billing)" : "(optional)"}</small></span>
+                  <span>Medical Record Number (MRN) — optional</span>
                   <input className={styles.input} value={medicalRecordNumber} onChange={(event) => setMedicalRecordNumber(event.target.value)} autoComplete="off" />
+                  <small>For hospital and facility bookings only.</small>
                 </label>
                 <label className={styles.field}>
-                  <span>Is the patient under 250 lb / 113 kg?</span>
-                  <select className={styles.input} value={isBariatric ? "NO" : "YES"} onChange={(event) => setIsBariatric(event.target.value === "NO")}>
-                    <option value="YES">Yes</option>
-                    <option value="NO">No</option>
+                  <span>Does the patient weigh more than 250 lb (113 kg)?</span>
+                  <select className={styles.input} value={patientOver250} onChange={(event) => setPatientOver250(event.target.value as RequirementAnswer)}>
+                    <option value="NO">No</option><option value="YES">Yes</option><option value="NOT_SURE">Not sure</option>
                   </select>
                 </label>
-                {isBariatric && <label className={styles.field}>
-                  <span>Approximate patient weight (lb)</span>
-                  <input type="number" min="251" max="2200" className={styles.input} value={passengerWeightLb} onChange={(event) => setPassengerWeightLb(event.target.value)} required />
-                </label>}
+                {patientOver250 === "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} styles={styles} />}
                 <label className={styles.field}>
-                  <span>People escorting the patient</span>
-                  <select className={styles.input} value={escortCount} onChange={(event) => setEscortCount(event.target.value)}>
-                    {[0, 1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}</option>)}
+                  <span>Will anyone be accompanying the patient?</span>
+                  <select className={styles.input} value={accompanimentChoice} onChange={(event) => { const choice = event.target.value; setAccompanimentChoice(choice); setEscortCount(choice === "3_PLUS" ? "3" : choice); }}>
+                    <option value="0">No</option><option value="1">Yes — 1 person</option><option value="2">Yes — 2 people</option><option value="3_PLUS">Yes — 3 or more people</option>
                   </select>
                 </label>
+                {accompanimentChoice === "3_PLUS" && <label className={styles.field}><span>How many people will be accompanying the patient?</span><input type="number" min="3" max="10" className={styles.input} value={escortCount} onChange={(event) => setEscortCount(event.target.value)} required /></label>}
               </div>
             </section>
 
             <section className={styles.sectionCard}>
-              <SectionHeader number="03" title="Trip details" copy="Where and when should we meet the patient?" />
+              <SectionHeader number="03" title="Trip details" copy="Where and when should we pick up the patient?" />
               <div className={styles.formGrid}>
                 <label className={`${styles.field} ${styles.fullField}`}><span>Pickup address</span><AddressAutocomplete inputClassName={styles.input} value={pickupAddress} onChange={setPickupAddress} onPlaceResolved={setPickupPlace} placeholder="123 Main St, London, ON" required /></label>
                 <label className={styles.field}><span>Pickup facility / hospital name <small>(optional)</small></span><input className={styles.input} value={pickupFacilityName} onChange={(event) => setPickupFacilityName(event.target.value)} /></label>
-                <label className={styles.field}><span>Pickup department <small>(optional)</small></span><input className={styles.input} value={pickupDepartment} onChange={(event) => setPickupDepartment(event.target.value)} placeholder="e.g. Endoscopy Unit" /></label>
+                <label className={styles.field}><span>Pickup department / unit <small>(optional)</small></span><input className={styles.input} value={pickupDepartment} onChange={(event) => setPickupDepartment(event.target.value)} placeholder="e.g. Endoscopy Unit" /></label>
                 <label className={styles.field}><span>Pickup room <small>(optional)</small></span><input className={styles.input} value={pickupRoom} onChange={(event) => setPickupRoom(event.target.value)} placeholder="e.g. Room 200" /></label>
                 <label className={`${styles.field} ${styles.fullField}`}><span>Drop-off address</span><AddressAutocomplete inputClassName={styles.input} value={dropoffAddress} onChange={setDropoffAddress} onPlaceResolved={setDropoffPlace} placeholder="Hospital, clinic or home address" required /></label>
                 <label className={styles.field}><span>Drop-off facility / hospital name <small>(optional)</small></span><input className={styles.input} value={dropoffFacilityName} onChange={(event) => setDropoffFacilityName(event.target.value)} /></label>
-                <label className={styles.field}><span>Drop-off department <small>(optional)</small></span><input className={styles.input} value={dropoffDepartment} onChange={(event) => setDropoffDepartment(event.target.value)} placeholder="e.g. Imaging" /></label>
+                <label className={styles.field}><span>Drop-off department / unit <small>(optional)</small></span><input className={styles.input} value={dropoffDepartment} onChange={(event) => setDropoffDepartment(event.target.value)} placeholder="e.g. Imaging" /></label>
                 <label className={styles.field}><span>Drop-off room <small>(optional)</small></span><input className={styles.input} value={dropoffRoom} onChange={(event) => setDropoffRoom(event.target.value)} placeholder="e.g. Room 310" /></label>
                 <div className={`${styles.field} ${styles.fullField}`}><span>Pickup date and time</span><LongDateInput includeTime min={minimumPickupTime} ariaLabel="Pickup date and time" controlClassName={styles.input} value={scheduledAt} onChange={setScheduledAt} required /></div>
                 <div className={`${styles.roundTripBox} ${styles.fullField}`}>
-                  <label className={styles.field}><span>One-way or return trip?</span><select className={styles.input} value={returnTripType} onChange={(event) => { const nextType = event.target.value as ReturnTripType; setReturnTripType(nextType); if (nextType === "WAIT_AND_RETURN" && waitMinutes === "0") setWaitMinutes("60"); }}><option value="ONE_WAY">One-way trip</option><option value="WAIT_AND_RETURN">Wait with the patient and return</option><option value="SCHEDULED_RETURN">Drop off and return later</option><option value="CALL_FOR_RETURN">No wait — call when ready</option></select></label>
-                  {hasReturnLeg && <div className={styles.field}><span>{returnTripType === "WAIT_AND_RETURN" ? "Expected return time" : "Estimated return pickup date and time"}</span><LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} required /></div>}
-                  {returnTripType === "WAIT_AND_RETURN" && <label className={styles.field}><span>How long should we wait?</span><select className={styles.input} value={waitMinutes} onChange={(event) => setWaitMinutes(event.target.value)}>{[30, 60, 90, 120, 180, 240, 360, 480, 600, 720].map((minutes) => <option key={minutes} value={minutes}>{minutes < 60 ? "30 minutes" : `${minutes / 60} hour${minutes === 60 ? "" : "s"}`}</option>)}</select></label>}
+                  <label className={styles.field}><span>One-way or return trip?</span><select className={styles.input} value={returnTripType} onChange={(event) => setReturnTripType(event.target.value as ReturnTripType)}><option value="ONE_WAY">One-way trip</option><option value="WAIT_AND_RETURN">Wait with the patient and return</option><option value="SCHEDULED_RETURN">Drop off and return later</option></select></label>
+                  {returnTripType === "SCHEDULED_RETURN" && <div className={styles.field}><span>Estimated return pickup date and time</span><LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} required /></div>}
+                  {returnTripType === "WAIT_AND_RETURN" && <div className={`${styles.field} ${styles.fullField}`}><span>What is the approximate waiting time before returning with the patient?</span><div className={styles.formGrid}><label className={styles.field}><span>Hours</span><select className={styles.input} value={waitHours} onChange={(event) => setWaitHours(event.target.value)}>{Array.from({ length: 13 }, (_, hour) => <option key={hour} value={hour}>{hour}</option>)}</select></label><label className={styles.field}><span>Minutes</span><select className={styles.input} value={waitMinuteRemainder} onChange={(event) => setWaitMinuteRemainder(event.target.value)}>{[0, 15, 30, 45].map((minute) => <option key={minute} value={minute}>{String(minute).padStart(2, "0")}</option>)}</select></label></div><small>Waiting time charges may apply based on the actual waiting time.</small></div>}
                 </div>
                 {bookingChannel !== "PUBLIC" && <>
                   <label className={styles.field}><span>Preferred timing</span><select className={styles.input} value={pickupTimePreference} onChange={(event) => setPickupTimePreference(event.target.value as PickupTimePreference)}><option value="SPECIFIC">Specific time</option><option value="ASAP">First available (ASAP)</option><option value="FLEXIBLE">Any time that day</option></select></label>
@@ -470,38 +528,62 @@ function BookingPageContent() {
 
             <section className={styles.sectionCard}>
               <SectionHeader number="04" title="Transportation type" copy="Choose the vehicle and assistance best suited to the passenger." />
-              <fieldset className={styles.field}><legend>Transportation type</legend><div className={styles.serviceGrid}>{SERVICE_OPTIONS.map((option) => <label key={option.value} className={`${styles.serviceChoice} ${mobilityType === option.value ? styles.choiceActive : ""}`}><input type="radio" name="mobilityType" value={option.value} checked={mobilityType === option.value} onChange={() => setMobilityType(option.value)} /><span className={styles.radioMark} /><strong>{option.title}</strong><small>{option.copy}</small></label>)}</div></fieldset>
-              <label className={`${styles.optionCard} ${isBariatric ? styles.optionActive : ""}`}><input type="checkbox" checked={isBariatric} onChange={(event) => setIsBariatric(event.target.checked)} /><OptionIcon type="care" /><span><strong>Bariatric / special assistance</strong><small>Specialized equipment and additional support</small></span></label>
+              <fieldset className={styles.field}><legend>Transportation type</legend><div className={styles.serviceGrid}>{SERVICE_OPTIONS.map((option) => <label key={option.value} className={`${styles.serviceChoice} ${mobilityType === option.value ? styles.choiceActive : ""}`}><input type="radio" name="mobilityType" value={option.value} checked={mobilityType === option.value} onChange={() => { setMobilityType(option.value); if (option.value === "AMBULATORY" && specialAssistance === "BARIATRIC") setSpecialAssistance("NO"); }} /><span className={styles.radioMark} /><strong>{option.title}</strong><small>{option.copy}</small></label>)}</div></fieldset>
               {bookingChannel !== "PUBLIC" && <label className={`${styles.optionCard} ${extraAttendant ? styles.optionActive : ""}`}><input type="checkbox" checked={extraAttendant} onChange={(event) => setExtraAttendant(event.target.checked)} /><OptionIcon type="person" /><span><strong>Extra attendant</strong><small>Internal dispatch option</small></span></label>}
             </section>
 
             <section className={styles.sectionCard}>
               <SectionHeader number="05" title="Passenger requirements" copy="These answers help the care team prepare safely." />
               <div className={styles.formGrid}>
-                <RequirementSelect label="Is oxygen required?" value={oxygenRequirement} onChange={setOxygenRequirement} styles={styles} />
-                {oxygenRequirement === "YES" && <label className={styles.field}><span>Oxygen flow rate (LPM)</span><input type="number" min="0.1" max="30" step="0.1" className={styles.input} value={oxygenLitresPerMinute} onChange={(event) => setOxygenLitresPerMinute(event.target.value)} required /></label>}
+                <label className={styles.field}><span>Does the patient require special assistance?</span><select className={styles.input} value={specialAssistance} onChange={(event) => setSpecialAssistance(event.target.value as SpecialAssistance)}><option value="NO">No</option><option value="STAIR_CHAIR">Yes — Stair-chair assistance</option><option value="BARIATRIC" disabled={mobilityType === "AMBULATORY"}>Yes — Bariatric support</option><option value="NOT_SURE">Not sure</option></select>{mobilityType === "AMBULATORY" && <small>Bariatric support is available for wheelchair and stretcher transportation.</small>}</label>
+                {specialAssistance === "STAIR_CHAIR" && <div className={styles.field}><RequirementSelect label="Does the patient weigh 250 lb (113 kg) or less?" value={stairChairWeightEligible} onChange={setStairChairWeightEligible} styles={styles} /><small>Stair-chair assistance is available for patients up to 250 lb (113 kg), subject to safe operating conditions.</small></div>}
+                {specialAssistance === "BARIATRIC" && <div className={styles.field}>{patientOver250 !== "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} styles={styles} />}<small>Bariatric support is available for wheelchair and stretcher transportation.</small></div>}
+                <RequirementSelect label="Does the patient require oxygen during transportation?" value={oxygenRequirement} onChange={setOxygenRequirement} styles={styles} />
+                {oxygenRequirement === "YES" && <label className={styles.field}><span>What is the required oxygen flow rate?</span><span className={styles.inputWithSuffix}><input type="number" min="0.1" max="5" step="0.1" className={styles.input} value={oxygenLitresPerMinute} onChange={(event) => setOxygenLitresPerMinute(event.target.value)} required /><b>L/min</b></span><small>Gray Jay Care provides oxygen transportation support for flow rates up to a maximum of 5 L/min. Please provide the patient&apos;s prescribed flow rate when booking.</small></label>}
                 <RequirementSelect label="Are isolation precautions required?" value={isolationRequirement} onChange={setIsolationRequirement} styles={styles} />
                 {isolationRequirement === "YES" && <label className={styles.field}><span>Isolation type / precautions</span><input className={styles.input} value={isolationDetails} onChange={(event) => setIsolationDetails(event.target.value)} placeholder="e.g. contact, droplet, flu, COVID-19" required /></label>}
-                <RequirementSelect label="Is DNR paperwork available?" value={dnrRequirement} onChange={setDnrRequirement} styles={styles} />
+                <RequirementSelect label="Does the patient have a DNR (Do Not Resuscitate) paperwork?" value={dnrRequirement} onChange={setDnrRequirement} styles={styles} />
+                {dnrRequirement === "YES" && <label className={`${styles.optionCard} ${styles.fullField} ${dnrDocumentationConfirmed ? styles.optionActive : ""}`}><input type="checkbox" checked={dnrDocumentationConfirmed} onChange={(event) => setDnrDocumentationConfirmed(event.target.checked)} required /><OptionIcon type="care" /><span><strong>Please confirm that the required DNR documentation will be available at pickup.</strong></span></label>}
               </div>
             </section>
 
             <section className={styles.sectionCard}>
-              <SectionHeader number="06" title="Payment" copy="Select how this transportation request will be billed." />
+              <SectionHeader number="06" title="Payment information" copy="How will this transportation be paid for?" />
               <div className={styles.formGrid}>
                 <label className={styles.field}>
-                  <span>Payment preference</span>
+                  <span>Payment method</span>
                   <select className={styles.input} value={paymentPreference} onChange={(event) => setPaymentPreference(event.target.value as PaymentPreference)} required>
                     <option value="">Select payment preference</option>
-                    <option value="CARD">Debit / credit card</option>
-                    <option value="CASH">Cash</option>
+                    <option value="CARD">Credit / Debit Card</option>
                     <option value="E_TRANSFER">E-transfer</option>
-                    <option value="INVOICE">Direct billing / account</option>
+                    <option value="INVOICE">Invoice</option>
+                    <option value="DIRECT_BILLING">Direct Billing / Account</option>
                     <option value="INSURANCE">Insurance</option>
                     <option value="OPGT">OPGT</option>
                     <option value="OTHER">Other</option>
                   </select>
                 </label>
+                {(paymentPreference === "CARD" || paymentPreference === "E_TRANSFER") && <p className={`${styles.fullField} ${styles.consent}`}>Payment instructions will be provided by Gray Jay Care.</p>}
+                {paymentPreference === "INVOICE" && <>
+                  <label className={styles.field}><span>Who should receive the invoice?</span><select className={styles.input} value={invoiceRecipient} onChange={(event) => setInvoiceRecipient(event.target.value)} required><option value="">Select recipient</option><option value="PATIENT_CLIENT">Patient / Client</option><option value="HOSPITAL_FACILITY">Hospital / Facility</option><option value="OTHER">Other</option></select></label>
+                  <label className={styles.field}><span>Invoice To — Full Name / Organization</span><input className={styles.input} value={invoiceName} onChange={(event) => setInvoiceName(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Email Address</span><input type="email" className={styles.input} value={invoiceEmail} onChange={(event) => setInvoiceEmail(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Billing Address</span><input className={styles.input} value={billingAddress} onChange={(event) => setBillingAddress(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Purchase Order / Reference Number <small>(if applicable)</small></span><input className={styles.input} value={purchaseOrderReference} onChange={(event) => setPurchaseOrderReference(event.target.value)} /></label>
+                </>}
+                {paymentPreference === "DIRECT_BILLING" && <>
+                  <label className={styles.field}><span>Account / Organization Name</span><input className={styles.input} value={billingOrganization} onChange={(event) => setBillingOrganization(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Account Number <small>(if applicable)</small></span><input className={styles.input} value={billingAccountNumber} onChange={(event) => setBillingAccountNumber(event.target.value)} /></label>
+                  <label className={styles.field}><span>Contact Person</span><input className={styles.input} value={billingContactPerson} onChange={(event) => setBillingContactPerson(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Purchase Order / Reference Number <small>(if applicable)</small></span><input className={styles.input} value={purchaseOrderReference} onChange={(event) => setPurchaseOrderReference(event.target.value)} /></label>
+                </>}
+                {paymentPreference === "INSURANCE" && <>
+                  <label className={styles.field}><span>Insurance Company</span><input className={styles.input} value={insuranceCompany} onChange={(event) => setInsuranceCompany(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Claim / Reference Number</span><input className={styles.input} value={insuranceClaimNumber} onChange={(event) => setInsuranceClaimNumber(event.target.value)} required /></label>
+                  <label className={styles.field}><span>Policy Number <small>(if required)</small></span><input className={styles.input} value={insurancePolicyNumber} onChange={(event) => setInsurancePolicyNumber(event.target.value)} /></label>
+                </>}
+                {paymentPreference === "OPGT" && <><label className={styles.field}><span>OPGT Client / Account Information</span><input className={styles.input} value={opgtClientInformation} onChange={(event) => setOpgtClientInformation(event.target.value)} required /></label><label className={styles.field}><span>Contact Person <small>(if applicable)</small></span><input className={styles.input} value={opgtContactPerson} onChange={(event) => setOpgtContactPerson(event.target.value)} /></label></>}
+                {paymentPreference === "OTHER" && <label className={`${styles.field} ${styles.fullField}`}><span>Please provide payment details</span><textarea className={styles.input} rows={3} value={otherPaymentDetails} onChange={(event) => setOtherPaymentDetails(event.target.value)} required /><small>Payment arrangements will be reviewed and confirmed by Gray Jay Care before transportation is finalized.</small></label>}
                 {extraAttendant && (
                   <label className={styles.field}>
                     <span>Extra attendant time</span>
@@ -517,13 +599,8 @@ function BookingPageContent() {
             <section className={styles.sectionCard}>
               <SectionHeader number="07" title="Belongings and notes" copy="Share anything the transport team should know before arrival." />
               <div className={styles.formGrid}>
-                <label className={styles.field}><span>Will the patient have belongings?</span><select className={styles.input} value={hasBelongings ? "YES" : "NO"} onChange={(event) => setHasBelongings(event.target.value === "YES")}><option value="NO">No</option><option value="YES">Yes</option></select></label>
-                {hasBelongings && <label className={styles.field}><span>Describe the belongings</span><input className={styles.input} value={belongingsDescription} onChange={(event) => setBelongingsDescription(event.target.value)} placeholder="e.g. wheelchair, two bags, walker" required /></label>}
-                <label className={`${styles.optionCard} ${styles.fullField} ${medicalDocumentsAvailable ? styles.optionActive : ""}`}>
-                  <input type="checkbox" checked={medicalDocumentsAvailable} onChange={(event) => setMedicalDocumentsAvailable(event.target.checked)} />
-                  <OptionIcon type="care" />
-                  <span><strong>Medical documents are available</strong><small>For privacy, dispatch will arrange secure collection; do not email sensitive documents.</small></span>
-                </label>
+                <RequirementSelect label="Will the patient have belongings?" value={belongingsRequirement} onChange={setBelongingsRequirement} styles={styles} />
+                {belongingsRequirement === "YES" && <label className={styles.field}><span>Describe the belongings</span><input className={styles.input} value={belongingsDescription} onChange={(event) => setBelongingsDescription(event.target.value)} placeholder="e.g. wheelchair, two bags, walker" required /></label>}
                 <label className={`${styles.field} ${styles.fullField}`}>
                   <span>Additional notes <small>(optional)</small></span>
                   <textarea className={styles.input} rows={4} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Entrance instructions, appointment details, transfer assistance or anything else we should know." />
@@ -574,7 +651,7 @@ function BookingPageContent() {
                   </div>
                 )}
 
-                {error && <p className={styles.error}>{error}</p>}
+                {error && <p ref={errorRef} role="alert" tabIndex={-1} className={styles.error}>{error}</p>}
                 <button type="submit" disabled={submitting} className={styles.submitButton}>
                   {submitting ? "Sending your request..." : "Request this booking"}
                 </button>
@@ -629,6 +706,18 @@ function RequirementSelect({ label, value, onChange, styles: fieldStyles }: { la
         <option value="YES">Yes</option>
         <option value="NOT_SURE">Not sure</option>
       </select>
+    </label>
+  );
+}
+
+function WeightInput({ value, unit, onValue, onUnit, styles: fieldStyles }: { value: string; unit: WeightUnit; onValue: (value: string) => void; onUnit: (unit: WeightUnit) => void; styles: typeof styles }) {
+  return (
+    <label className={fieldStyles.field}>
+      <span>What is the patient&apos;s approximate weight?</span>
+      <span className={fieldStyles.inputWithSuffix}>
+        <input type="number" min="1" max="2200" step="0.1" className={fieldStyles.input} value={value} onChange={(event) => onValue(event.target.value)} placeholder="Enter weight" required />
+        <select aria-label="Weight unit" value={unit} onChange={(event) => onUnit(event.target.value as WeightUnit)}><option value="LB">lb</option><option value="KG">kg</option></select>
+      </span>
     </label>
   );
 }

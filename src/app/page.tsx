@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Marcellus, Source_Sans_3 } from "next/font/google";
 import styles from "./landing.module.css";
 import TidioChat from "@/components/TidioChat";
+import FloatingCallButton from "@/components/FloatingCallButton";
+import ReviewCarousel from "@/components/ReviewCarousel";
 
 const marcellus = Marcellus({
   subsets: ["latin"],
@@ -14,15 +16,6 @@ const sourceSans = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-landing-body",
 });
-
-const PARTNERS = [
-  { src: "/site/partner-sienna.png", alt: "Sienna Senior Living" },
-  { src: "/site/partner-bluewater-health.png", alt: "Bluewater Health" },
-  { src: "/site/partner-windsor-regional.png", alt: "Windsor Regional Hospital" },
-  { src: "/site/partner-lhsc.png", alt: "London Health Sciences Centre" },
-  { src: "/site/partner-cambridge-memorial.png", alt: "Cambridge Memorial Hospital" },
-  { src: null, alt: "Meadow Park Long-Term Care" },
-];
 
 const FEATURES = [
   {
@@ -79,28 +72,26 @@ const FAQS = [
   },
   {
     q: "Can pickup or arrival times be delayed?",
-    a: "We work hard to stay on schedule, but weather, road conditions, traffic, vehicle or equipment issues, and facility circumstances beyond our reasonable control can occasionally cause delays. We will communicate updates as soon as possible.",
+    a: "We do our best to stay on schedule. However, traffic, weather, road conditions, facility delays, or unforeseen circumstances may occasionally affect pickup or arrival times. If a delay occurs, we will keep you informed and provide an update as soon as possible.",
   },
 ];
 
 const TESTIMONIALS = [
   {
-    name: "Ronald Patterson",
-    quote: "The entire process was smooth and stress-free. The worker was kind, patient, and understanding. Professional service and genuine care.",
+    name: "Lorraine McKell",
+    quote: "Once again, this service is the best way to go. Friendly, caring.",
   },
   {
-    name: "Amy Osborn",
-    quote:
-      "My 84 year old father just recently became unable to walk. We had an appointment at University hospital and Gray Jay Care made the trip professional, caring, and reassuring.",
+    name: "Angelo Marcoccia",
+    quote: "Gray Jay Care has provided amazing service to our family member over the past few weeks! The drivers are very polite, respectful and have great empathy.",
   },
   {
-    name: "Faizan Ahmad",
-    quote: "Great guys! Exceptional service, always my first choice for patient transport.",
+    name: "Susan Smyth",
+    quote: "Very reasonable rates. Clean and modern vehicle. Polite, kind and sympathetic driver. Helped my mom relax during a stressful 2 hour drive.",
   },
   {
-    name: "AM",
-    quote:
-      "Best Medical Transport Service! They were on time, careful, and reasonably priced. We felt supported every step of the way.",
+    name: "M. Asad Nabeel",
+    quote: "Great service! They transported my grandfather from Victoria Hospital, London to home with care and respect. Highly recommend.",
   },
 ];
 
@@ -171,36 +162,22 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={styles.partners} aria-label="Healthcare partners">
-          <div className={styles.partnerTrack}>
-            {PARTNERS.map((partner) => (
-              <div className={styles.partnerLogo} key={partner.alt}>
-                {partner.src ? (
-                  <Image src={partner.src} alt={partner.alt} width={180} height={90} />
-                ) : (
-                  <span className={styles.meadowLogo} aria-label={partner.alt}>
-                    <b>Meadow Park</b>
-                    <small>Long-Term Care</small>
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section id="about-us" className={styles.about}>
           <div className={styles.aboutInner}>
             <div className={styles.aboutArt}>
               <LeafOutline className={styles.aboutLeaves} />
               <span className={styles.aboutBlob} aria-hidden="true" />
               <span className={styles.aboutPill} aria-hidden="true" />
-              <Image
-                src="/site/about-phone-mockup.png"
-                alt="Gray Jay Care mobile booking experience"
-                width={514}
-                height={600}
-                className={styles.phoneMockup}
-              />
+              <div className={styles.phoneMockup} aria-label="Preview of the Gray Jay Care online booking experience">
+                <div className={styles.phoneSpeaker} aria-hidden="true" />
+                <div className={styles.phoneScreen}>
+                  <Image src="/site/logo-wordmark.png" alt="Gray Jay Care" width={1648} height={445} />
+                  <p>Safe Journeys,<br />Caring Hands</p>
+                  <span>Compassionate non-emergency patient transportation, available 24/7.</span>
+                  <Link href="/book">Book now</Link>
+                  <small>Simple online booking · Secure confirmation</small>
+                </div>
+              </div>
             </div>
 
             <div className={styles.aboutCopy}>
@@ -287,40 +264,24 @@ export default function Home() {
 
         <section className={styles.testimonials}>
           <h2>Hear From Our Happy Clients</h2>
-          <div className={styles.reviewGrid}>
-            {TESTIMONIALS.map((review) => (
-              <article className={styles.reviewCard} key={review.name}>
-                <div className={styles.reviewHeader}>
-                  <span className={styles.reviewAvatar}>{review.name.charAt(0)}</span>
-                  <span>
-                    <strong>{review.name}</strong>
-                    <small>12 months ago</small>
-                  </span>
-                  <b aria-label="Google review">G</b>
-                </div>
-                <div className={styles.stars} aria-label="5 out of 5 stars">★★★★★</div>
-                <p>{review.quote}</p>
-                <small>Read more</small>
-              </article>
-            ))}
-          </div>
+          <ReviewCarousel reviews={TESTIMONIALS} />
           <a className={styles.googleReviewsLink} href="https://share.google/xkWjwOPfR9apkRU8Z" target="_blank" rel="noreferrer">View our latest Google reviews</a>
         </section>
 
         <section id="contact" className={styles.contact}>
           <div className={styles.contactIntro}>
-            <p className={styles.eyebrow}>Find us</p>
-            <h2>
-              Whether you have questions about our services or need assistance, our team is always here to help.
-              Please contact us using the details provided below.
-            </h2>
+            <h2 className={styles.eyebrow}>Contact Us</h2>
+            <p className={styles.contactDescription}>
+              Whether you have questions about our services or need assistance with booking your transportation,
+              our team is here to help. Please reach out using the contact information below.
+            </p>
           </div>
           <div className={styles.contactGrid}>
             <div className={styles.contactInformation}>
               <h3>Contact information</h3>
               <div className={styles.contactLinks}>
                 <ContactLink href="tel:+15199335090" icon="phone" label="(519) 933-5090" />
-                <ContactLink href="mailto:support@grayjaycare.com" icon="message" label="support@GrayJayCare.com" />
+                <ContactLink href="mailto:support@grayjaycare.com" icon="message" label="support@grayjaycare.com" />
                 <ContactLink href="https://www.instagram.com/grayjaycare/" icon="instagram" label="Follow Us on Instagram" external />
                 <ContactLink href="https://www.facebook.com/grayjaycare" icon="facebook" label="Follow Us on Facebook" external />
               </div>
@@ -340,6 +301,7 @@ export default function Home() {
       <footer className={styles.footer}>
         Copyright ©{new Date().getFullYear()} Gray Jay Care. All rights reserved.
       </footer>
+      <FloatingCallButton />
       <TidioChat />
     </div>
   );

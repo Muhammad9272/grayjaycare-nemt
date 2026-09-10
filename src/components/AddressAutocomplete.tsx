@@ -124,6 +124,12 @@ export default function AddressAutocomplete({
         className={inputClassName}
         value={value}
         onChange={(event) => {
+          if (event.target.value.trim().length < 3) {
+            setSuggestions([]);
+            setActiveIndex(-1);
+            setOpen(false);
+            setLoading(false);
+          }
           onPlaceResolved?.(null);
           onChange(event.target.value);
         }}

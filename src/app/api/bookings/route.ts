@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   const returnTripType = input.returnTripType ?? (input.isRoundTrip ? "SCHEDULED_RETURN" : "ONE_WAY");
   const hasReturnLeg = returnTripType === "SCHEDULED_RETURN" || returnTripType === "WAIT_AND_RETURN";
-  if (hasReturnLeg && !input.returnScheduledAt) {
+  if (returnTripType === "SCHEDULED_RETURN" && !input.returnScheduledAt) {
     return NextResponse.json(
       { error: "Return trip date and time are required for this return option." },
       { status: 400 },
@@ -71,12 +71,27 @@ export async function POST(request: Request) {
       ? Math.round(returnGoogleDistance.distanceKm * 10) / 10
       : input.returnDistanceKm ?? outboundDistanceKm
     : null;
+  const resolvedReturnScheduledAt = returnTripType === "WAIT_AND_RETURN"
+    ? new Date(input.scheduledAt.getTime() + ((outboundGoogleDistance?.durationMinutes ?? 0) + input.waitMinutes) * 60_000)
+    : input.returnScheduledAt;
   const isOutOfCity = source === "WEBSITE"
     ? ![input.pickupAddress, input.dropoffAddress].every((address) => /\blondon\b/i.test(address))
     : input.isOutOfCity;
   const oxygenRequirement = input.oxygenRequirement === "NO" && input.requiresOxygen ? "YES" : input.oxygenRequirement;
   const isolationRequirement = input.isolationRequirement === "NO" && input.requiresIsolation ? "YES" : input.isolationRequirement;
   const dnrRequirement = input.dnrRequirement === "NO" && input.hasDnr ? "YES" : input.dnrRequirement;
+  const belongingsRequirement = input.belongingsRequirement === "NO" && input.hasBelongings ? "YES" : input.belongingsRequirement;
+  const keepsPassengerWeight = input.patientOver250 === "YES" || input.specialAssistance === "BARIATRIC";
+  const passengerWeightValue = keepsPassengerWeight ? input.passengerWeightValue : undefined;
+  const passengerWeightUnit = keepsPassengerWeight ? input.passengerWeightUnit : undefined;
+  const passengerWeightKg = passengerWeightValue
+    ? Math.round(passengerWeightUnit === "LB" ? passengerWeightValue * 0.453592 : passengerWeightValue)
+    : keepsPassengerWeight ? input.passengerWeightKg : undefined;
+  const isInvoice = input.paymentPreference === "INVOICE";
+  const isDirectBilling = input.paymentPreference === "DIRECT_BILLING";
+  const isInsurance = input.paymentPreference === "INSURANCE";
+  const isOpgt = input.paymentPreference === "OPGT";
+  const isOtherPayment = input.paymentPreference === "OTHER";
   const fareInputBase = {
     mobilityType: input.mobilityType as MobilityType,
     isBariatric: input.isBariatric,
@@ -94,12 +109,12 @@ export async function POST(request: Request) {
   });
 
   let returnBreakdown: FareBreakdown | null = null;
-  if (hasReturnLeg && input.returnScheduledAt && returnDistanceKm) {
+  if (hasReturnLeg && resolvedReturnScheduledAt && returnDistanceKm) {
     returnBreakdown = computeFare(rule, {
       ...fareInputBase,
       distanceKm: returnDistanceKm,
-      waitMinutes: input.waitMinutes,
-      scheduledAt: input.returnScheduledAt,
+      waitMinutes: 0,
+      scheduledAt: resolvedReturnScheduledAt,
       isReturnLeg: true,
     });
   }
@@ -200,7 +215,12 @@ export async function POST(request: Request) {
         mobilityType: input.mobilityType,
         isBariatric: input.isBariatric,
         isOutOfCity,
-        passengerWeightKg: input.passengerWeightKg,
+        passengerWeightKg,
+        patientOver250: input.patientOver250,
+        passengerWeightValue,
+        passengerWeightUnit,
+        specialAssistance: input.specialAssistance,
+        stairChairWeightEligible: input.specialAssistance === "STAIR_CHAIR" ? input.stairChairWeightEligible : null,
         requiresOxygen: oxygenRequirement === "YES",
         oxygenRequirement,
         oxygenLitresPerMinute: oxygenRequirement === "YES" ? input.oxygenLitresPerMinute : null,
@@ -209,11 +229,26 @@ export async function POST(request: Request) {
         isolationDetails: isolationRequirement === "YES" ? input.isolationDetails : null,
         hasDnr: dnrRequirement === "YES",
         dnrRequirement,
-        hasBelongings: input.hasBelongings,
-        belongingsDescription: input.hasBelongings ? input.belongingsDescription : null,
+        dnrDocumentationConfirmed: dnrRequirement === "YES" && input.dnrDocumentationConfirmed,
+        hasBelongings: belongingsRequirement === "YES",
+        belongingsRequirement,
+        belongingsDescription: belongingsRequirement === "YES" ? input.belongingsDescription : null,
         escortCount: input.escortCount,
         paymentPreference: input.paymentPreference,
-        medicalDocumentsAvailable: input.medicalDocumentsAvailable,
+        invoiceRecipient: isInvoice ? input.invoiceRecipient : null,
+        invoiceName: isInvoice ? input.invoiceName : null,
+        invoiceEmail: isInvoice ? input.invoiceEmail : null,
+        billingAddress: isInvoice ? input.billingAddress : null,
+        billingOrganization: isDirectBilling ? input.billingOrganization : null,
+        billingAccountNumber: isDirectBilling ? input.billingAccountNumber : null,
+        billingContactPerson: isDirectBilling ? input.billingContactPerson : null,
+        purchaseOrderReference: isInvoice || isDirectBilling ? input.purchaseOrderReference : null,
+        insuranceCompany: isInsurance ? input.insuranceCompany : null,
+        insuranceClaimNumber: isInsurance ? input.insuranceClaimNumber : null,
+        insurancePolicyNumber: isInsurance ? input.insurancePolicyNumber : null,
+        opgtClientInformation: isOpgt ? input.opgtClientInformation : null,
+        opgtContactPerson: isOpgt ? input.opgtContactPerson : null,
+        otherPaymentDetails: isOtherPayment ? input.otherPaymentDetails : null,
         extraAttendant: input.extraAttendant,
         extraAttendantHours: input.extraAttendant ? input.extraAttendantHours : null,
         estimatedWaitMinutes: input.waitMinutes,
@@ -229,7 +264,7 @@ export async function POST(request: Request) {
     });
 
     let returnTripId: string | null = null;
-    if (hasReturnLeg && input.returnScheduledAt && returnDistanceKm && returnBreakdown) {
+    if (hasReturnLeg && resolvedReturnScheduledAt && returnDistanceKm && returnBreakdown) {
       const returnTrip = await tx.trip.create({
         data: {
           referenceCode: generateReferenceCode(),
@@ -256,13 +291,18 @@ export async function POST(request: Request) {
           dropoffFacilityName: input.pickupFacilityName,
           dropoffDepartment: input.pickupDepartment,
           dropoffRoom: input.pickupRoom,
-          scheduledAt: input.returnScheduledAt,
+          scheduledAt: resolvedReturnScheduledAt,
           pickupTimePreference: input.pickupTimePreference,
           returnTripType,
           mobilityType: input.mobilityType,
           isBariatric: input.isBariatric,
           isOutOfCity,
-          passengerWeightKg: input.passengerWeightKg,
+          passengerWeightKg,
+          patientOver250: input.patientOver250,
+          passengerWeightValue,
+          passengerWeightUnit,
+          specialAssistance: input.specialAssistance,
+          stairChairWeightEligible: input.specialAssistance === "STAIR_CHAIR" ? input.stairChairWeightEligible : null,
           requiresOxygen: oxygenRequirement === "YES",
           oxygenRequirement,
           oxygenLitresPerMinute: oxygenRequirement === "YES" ? input.oxygenLitresPerMinute : null,
@@ -271,11 +311,26 @@ export async function POST(request: Request) {
           isolationDetails: isolationRequirement === "YES" ? input.isolationDetails : null,
           hasDnr: dnrRequirement === "YES",
           dnrRequirement,
-          hasBelongings: input.hasBelongings,
-          belongingsDescription: input.hasBelongings ? input.belongingsDescription : null,
+          dnrDocumentationConfirmed: dnrRequirement === "YES" && input.dnrDocumentationConfirmed,
+          hasBelongings: belongingsRequirement === "YES",
+          belongingsRequirement,
+          belongingsDescription: belongingsRequirement === "YES" ? input.belongingsDescription : null,
           escortCount: input.escortCount,
           paymentPreference: input.paymentPreference,
-          medicalDocumentsAvailable: input.medicalDocumentsAvailable,
+          invoiceRecipient: isInvoice ? input.invoiceRecipient : null,
+          invoiceName: isInvoice ? input.invoiceName : null,
+          invoiceEmail: isInvoice ? input.invoiceEmail : null,
+          billingAddress: isInvoice ? input.billingAddress : null,
+          billingOrganization: isDirectBilling ? input.billingOrganization : null,
+          billingAccountNumber: isDirectBilling ? input.billingAccountNumber : null,
+          billingContactPerson: isDirectBilling ? input.billingContactPerson : null,
+          purchaseOrderReference: isInvoice || isDirectBilling ? input.purchaseOrderReference : null,
+          insuranceCompany: isInsurance ? input.insuranceCompany : null,
+          insuranceClaimNumber: isInsurance ? input.insuranceClaimNumber : null,
+          insurancePolicyNumber: isInsurance ? input.insurancePolicyNumber : null,
+          opgtClientInformation: isOpgt ? input.opgtClientInformation : null,
+          opgtContactPerson: isOpgt ? input.opgtContactPerson : null,
+          otherPaymentDetails: isOtherPayment ? input.otherPaymentDetails : null,
           extraAttendant: input.extraAttendant,
           extraAttendantHours: input.extraAttendant ? input.extraAttendantHours : null,
           estimatedWaitMinutes: input.waitMinutes,

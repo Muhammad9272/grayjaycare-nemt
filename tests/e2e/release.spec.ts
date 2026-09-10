@@ -344,6 +344,46 @@ test("customer and driver registration validate duplicates and approval", async 
   expect((await approved.json()).driver.verificationStatus).toBe("APPROVED");
 });
 
+test("revised public content, reviews, contact details, and call actions are present", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" })).toHaveAttribute("href", "tel:+15199335090");
+  await page.getByText("Can pickup or arrival times be delayed?", { exact: true }).click();
+  await expect(page.getByText("We do our best to stay on schedule. However, traffic, weather, road conditions, facility delays, or unforeseen circumstances may occasionally affect pickup or arrival times. If a delay occurs, we will keep you informed and provide an update as soon as possible.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Whether you have questions about our services or need assistance with booking your transportation, our team is here to help. Please reach out using the contact information below.", { exact: true })).toBeVisible();
+  await expect(page.getByText("support@grayjaycare.com", { exact: true })).toBeVisible();
+  await expect(page.getByText("support@GrayJayCare.com", { exact: true })).toHaveCount(0);
+
+  for (const removed of ["Sienna Senior Living", "Bluewater Health", "Windsor Regional Hospital", "London Health Sciences Centre", "Meadow Park Long-Term Care", "Nature", "Rodva", "Homepage"]) {
+    await expect(page.getByText(removed, { exact: true })).toHaveCount(0);
+  }
+  await expect(page.locator('[aria-label="Healthcare partners"]')).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "View our latest Google reviews" })).toHaveAttribute("href", /share\.google/);
+  await expect(page.getByText("Verified Google review", { exact: true }).first()).toBeVisible();
+  const firstReview = page.locator("article").filter({ hasText: "Lorraine McKell" }).first();
+  await expect(firstReview).toBeVisible();
+  expect(await firstReview.evaluate((element) => getComputedStyle(element.parentElement!).animationName)).not.toBe("none");
+  const reviewControl = page.getByRole("button", { name: "Pause reviews" });
+  await expect(reviewControl).toBeVisible();
+  await reviewControl.click();
+  await expect(page.getByRole("button", { name: "Resume reviews" })).toBeVisible();
+  expect(await firstReview.evaluate((element) => getComputedStyle(element.parentElement!).animationPlayState)).toBe("paused");
+
+  const callAction = page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" });
+  await page.locator("body").click({ position: { x: 1, y: 1 } });
+  let callFocused = false;
+  for (let index = 0; index < 30 && !callFocused; index += 1) {
+    await page.keyboard.press("Tab");
+    callFocused = await callAction.evaluate((element) => element === document.activeElement);
+  }
+  expect(callFocused, "Call Us must be reachable with the keyboard").toBe(true);
+  expect(await callAction.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe("none");
+
+  for (const path of ["/book", "/careers", "/login", "/forgot-password", "/register", "/register/driver"]) {
+    await page.goto(path);
+    await expect(page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" })).toHaveAttribute("href", "tel:+15199335090");
+  }
+});
+
 test("a public booking creates an account and signs the passenger directly into the portal", async ({ page }) => {
   await page.route("**/api/pricing/quote", async (route) => {
     await route.fulfill({
@@ -382,17 +422,26 @@ test("a public booking creates an account and signs the passenger directly into 
   await page.getByLabel("Drop-off department").fill("Imaging");
   await fillLongDate(page, "Pickup date and time", serviceDateTimeInputValue(new Date(Date.now() + 48 * 60 * 60_000)));
   await page.getByLabel("Patient's full name").fill("Automatic Patient");
-  await page.getByLabel("Medical record number").fill("MRN-2026-001");
-  await page.getByLabel("People escorting the patient").selectOption("1");
-  await page.getByLabel("Is oxygen required?").selectOption("YES");
-  await page.getByLabel("Oxygen flow rate").fill("2");
+  await page.getByLabel("Medical Record Number").fill("MRN-2026-001");
+  await page.getByLabel("Does the patient weigh more than 250 lb").selectOption("YES");
+  await page.getByPlaceholder("Enter weight").fill("280");
+  await page.getByLabel("Weight unit").selectOption("LB");
+  await page.getByLabel("Will anyone be accompanying the patient?").selectOption("1");
+  await page.getByText("Wheelchair transportation with securement support", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: /^Wheelchair/ })).toBeChecked();
+  await page.getByLabel("Does the patient require special assistance?").selectOption("BARIATRIC");
+  await page.getByLabel("Does the patient require oxygen during transportation?").selectOption("YES");
+  await page.getByLabel("What is the required oxygen flow rate?").fill("2");
   await page.getByLabel("Are isolation precautions required?").selectOption("YES");
   await page.getByLabel("Isolation type / precautions").fill("Droplet precautions");
-  await page.getByLabel("Is DNR paperwork available?").selectOption("YES");
-  await page.getByLabel("Payment preference").selectOption("CARD");
+  await page.getByLabel("Does the patient have a DNR").selectOption("YES");
+  await page.getByText("Please confirm that the required DNR documentation will be available at pickup.").click();
+  await page.getByLabel("Payment method").selectOption("OPGT");
+  await page.getByLabel("OPGT Client / Account Information").fill("OPGT client 1234");
+  await page.getByLabel("Contact Person (if applicable)").fill("Case Worker");
   await page.getByLabel("Will the patient have belongings?").selectOption("YES");
   await page.getByLabel("Describe the belongings").fill("One bag and a walker");
-  await page.getByText("Medical documents are available").click();
+  await expect(page.getByText("Medical documents are available")).toHaveCount(0);
   await expect(page.getByText("Send your request", { exact: true })).toBeVisible();
   await expect(page.getByText("Your trip fare", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Request this booking" }).click();
@@ -414,14 +463,21 @@ test("a public booking creates an account and signs the passenger directly into 
   expect(created.pickupFacilityName).toBe("Victoria Hospital");
   expect(created.dropoffFacilityName).toBe("University Hospital");
   expect(created.escortCount).toBe(1);
+  expect(created.patientOver250).toBe("YES");
+  expect(created.passengerWeightValue?.toString()).toBe("280");
+  expect(created.passengerWeightUnit).toBe("LB");
+  expect(created.specialAssistance).toBe("BARIATRIC");
   expect(created.requiresIsolation).toBe(true);
   expect(created.isolationDetails).toBe("Droplet precautions");
   expect(created.hasDnr).toBe(true);
+  expect(created.dnrDocumentationConfirmed).toBe(true);
   expect(created.oxygenLitresPerMinute?.toString()).toBe("2");
   expect(created.hasBelongings).toBe(true);
+  expect(created.belongingsRequirement).toBe("YES");
   expect(created.belongingsDescription).toBe("One bag and a walker");
-  expect(created.paymentPreference).toBe("CARD");
-  expect(created.medicalDocumentsAvailable).toBe(true);
+  expect(created.paymentPreference).toBe("OPGT");
+  expect(created.opgtClientInformation).toBe("OPGT client 1234");
+  expect(created.opgtContactPerson).toBe("Case Worker");
 });
 
 test("public, dispatcher, and hospital entry points use the same complete booking flow", async ({ page, browser }) => {
@@ -431,7 +487,17 @@ test("public, dispatcher, and hospital entry points use the same complete bookin
     expect(sections.slice(0, 3)).toEqual(["Contact information", "Patient information", "Trip details"]);
     await expect(target.getByLabel("Pickup address")).toBeVisible();
     await expect(target.getByLabel("Pickup date and time: month")).toBeVisible();
-    await expect(target.getByLabel("Payment preference")).toBeVisible();
+    await expect(target.getByLabel("Payment method")).toBeVisible();
+    await expect(target.getByText("Who should our dispatcher contact to confirm this booking?", { exact: true })).toBeVisible();
+    await expect(target.getByText("Tell us who will be travelling and what assistance they may require.", { exact: true })).toBeVisible();
+    await expect(target.getByText("Where and when should we pick up the patient?", { exact: true })).toBeVisible();
+    await expect(target.getByLabel("Medical Record Number")).toBeVisible();
+    await expect(target.getByText("For hospital and facility bookings only.", { exact: true })).toBeVisible();
+    await expect(target.getByLabel("Does the patient weigh more than 250 lb")).toBeVisible();
+    await expect(target.getByLabel("Will anyone be accompanying the patient?")).toBeVisible();
+    await expect(target.getByText("No wait — call when ready", { exact: true })).toHaveCount(0);
+    await expect(target.getByText("Bariatric / special assistance", { exact: true })).toHaveCount(0);
+    await expect(target.getByText("Medical documents are available", { exact: true })).toHaveCount(0);
     if (channelLabel) {
       await expect(target.getByText(channelLabel, { exact: true })).toBeVisible();
       await expect(target.getByText("Live estimate", { exact: true })).toBeVisible();
@@ -458,6 +524,183 @@ test("public, dispatcher, and hospital entry points use the same complete bookin
   await expect(hospitalPage).toHaveURL(/\/book\?source=hospital/);
   await expectCompleteForm(hospitalPage, "Hospital portal booking");
   await hospitalPage.close();
+});
+
+test("revised booking conditionals expose only the approved choices and guidance", async ({ page }) => {
+  await page.goto("/book");
+
+  await expect(page.getByText("Passenger who can walk independently or with limited assistance", { exact: true })).toBeVisible();
+  await expect(page.getByText("Wheelchair transportation with securement support", { exact: true })).toBeVisible();
+  await expect(page.getByText("Non-emergency stretcher transportation with trained attendants", { exact: true })).toBeVisible();
+
+  const returnType = page.getByLabel("One-way or return trip?");
+  await expect(returnType.locator("option")).toHaveText(["One-way trip", "Wait with the patient and return", "Drop off and return later"]);
+  await returnType.selectOption("WAIT_AND_RETURN");
+  await expect(page.getByText("What is the approximate waiting time before returning with the patient?", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Hours")).toBeVisible();
+  await expect(page.getByLabel("Minutes")).toBeVisible();
+  await expect(page.getByText("Waiting time charges may apply based on the actual waiting time.", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Does the patient weigh more than 250 lb").selectOption("YES");
+  await expect(page.getByPlaceholder("Enter weight")).toBeVisible();
+  await expect(page.getByLabel("Weight unit")).toBeVisible();
+
+  const companionBracket = page.getByLabel("Will anyone be accompanying the patient?");
+  await companionBracket.selectOption("3_PLUS");
+  const exactCompanions = page.getByLabel("How many people will be accompanying the patient?");
+  await exactCompanions.fill("5");
+  await expect(companionBracket).toHaveValue("3_PLUS");
+  await expect(exactCompanions).toHaveValue("5");
+
+  const assistance = page.getByLabel("Does the patient require special assistance?");
+  await assistance.selectOption("STAIR_CHAIR");
+  await expect(page.getByLabel("Does the patient weigh 250 lb (113 kg) or less?")).toBeVisible();
+  await expect(page.getByText("Stair-chair assistance is available for patients up to 250 lb (113 kg), subject to safe operating conditions.", { exact: true })).toBeVisible();
+  await page.getByText("Wheelchair transportation with securement support", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: /^Wheelchair/ })).toBeChecked();
+  await assistance.selectOption("BARIATRIC");
+  await expect(page.getByText("Bariatric support is available for wheelchair and stretcher transportation.", { exact: true })).toBeVisible();
+  await expect(page.getByPlaceholder("Enter weight")).toHaveCount(1);
+  await page.getByLabel("Does the patient weigh more than 250 lb").selectOption("NO");
+  await expect(page.getByPlaceholder("Enter weight")).toHaveCount(1);
+
+  await page.getByLabel("Does the patient require oxygen during transportation?").selectOption("YES");
+  const oxygen = page.getByLabel("What is the required oxygen flow rate?");
+  await expect(oxygen).toHaveAttribute("max", "5");
+  await expect(page.getByText(/maximum of 5 L\/min/)).toBeVisible();
+  await page.getByLabel("Does the patient have a DNR").selectOption("YES");
+  await expect(page.getByText("Please confirm that the required DNR documentation will be available at pickup.", { exact: true })).toBeVisible();
+
+  const payment = page.getByLabel("Payment method");
+  await expect(payment.locator("option")).toHaveText([
+    "Select payment preference", "Credit / Debit Card", "E-transfer", "Invoice",
+    "Direct Billing / Account", "Insurance", "OPGT", "Other",
+  ]);
+  await payment.selectOption("CARD");
+  await expect(page.getByText("Payment instructions will be provided by Gray Jay Care.", { exact: true })).toBeVisible();
+  await payment.selectOption("INVOICE");
+  for (const label of ["Who should receive the invoice?", "Invoice To — Full Name / Organization", "Email Address", "Billing Address", "Purchase Order / Reference Number"]) {
+    await expect(page.getByLabel(label).first()).toBeVisible();
+  }
+  await payment.selectOption("DIRECT_BILLING");
+  for (const label of ["Account / Organization Name", "Account Number", "Contact Person"]) {
+    await expect(page.getByLabel(label).first()).toBeVisible();
+  }
+  await payment.selectOption("INSURANCE");
+  for (const label of ["Insurance Company", "Claim / Reference Number", "Policy Number"]) {
+    await expect(page.getByLabel(label)).toBeVisible();
+  }
+  await payment.selectOption("OPGT");
+  await expect(page.getByLabel("OPGT Client / Account Information")).toBeVisible();
+  await payment.selectOption("OTHER");
+  await expect(page.getByLabel("Please provide payment details")).toBeVisible();
+  await expect(page.getByText(/Payment arrangements will be reviewed and confirmed/)).toBeVisible();
+
+  await page.getByLabel("Will the patient have belongings?").selectOption("NOT_SURE");
+  await expect(page.getByLabel("Describe the belongings")).toHaveCount(0);
+  await page.getByLabel("Will the patient have belongings?").selectOption("YES");
+  await expect(page.getByLabel("Describe the belongings")).toBeVisible();
+  await expect(page.getByLabel("Additional notes")).toBeVisible();
+  await expect(page.getByText(/Medical documents/i)).toHaveCount(0);
+});
+
+test("booking API rejects incomplete revised conditionals and persists revised billing data", async ({ request }) => {
+  const invalidCases: Array<[string, Record<string, unknown>]> = [
+    ["oxygen above maximum", { oxygenRequirement: "YES", oxygenLitresPerMinute: 5.1 }],
+    ["DNR without document confirmation", { dnrRequirement: "YES" }],
+    ["belongings without description", { belongingsRequirement: "YES" }],
+    ["over-250 without weight", { patientOver250: "YES" }],
+    ["stair chair without eligibility", { specialAssistance: "STAIR_CHAIR" }],
+    ["invoice without recipient details", { paymentPreference: "INVOICE" }],
+    ["direct billing without account details", { paymentPreference: "DIRECT_BILLING" }],
+    ["insurance without claim details", { paymentPreference: "INSURANCE" }],
+    ["OPGT without client details", { paymentPreference: "OPGT" }],
+    ["other without payment details", { paymentPreference: "OTHER" }],
+  ];
+  for (const [name, overrides] of invalidCases) {
+    const response = await postJson(request, "/api/bookings", bookingBody(overrides));
+    expect(response.status(), name).toBe(400);
+  }
+
+  const waitResponse = await postJson(request, "/api/bookings", bookingBody({
+    guestEmail: fixture.customer.email,
+    isRoundTrip: true,
+    returnTripType: "WAIT_AND_RETURN",
+    waitMinutes: 75,
+  }));
+  expect(waitResponse.status()).toBe(201);
+  const waitResult = await waitResponse.json();
+  expect(waitResult.returnTripId).toBeTruthy();
+  const [waitOutbound, waitReturn] = await Promise.all([
+    prisma.trip.findUniqueOrThrow({ where: { id: waitResult.tripId } }),
+    prisma.trip.findUniqueOrThrow({ where: { id: waitResult.returnTripId } }),
+  ]);
+  expect(waitOutbound.estimatedWaitMinutes).toBe(75);
+  expect(waitReturn.scheduledAt.getTime() - waitOutbound.scheduledAt.getTime()).toBeGreaterThanOrEqual(75 * 60_000);
+
+  const response = await postJson(request, "/api/bookings", bookingBody({
+    guestEmail: fixture.customer.email,
+    patientOver250: "YES",
+    passengerWeightValue: 125,
+    passengerWeightUnit: "KG",
+    escortCount: 4,
+    specialAssistance: "STAIR_CHAIR",
+    stairChairWeightEligible: "NO",
+    dnrRequirement: "YES",
+    dnrDocumentationConfirmed: true,
+    belongingsRequirement: "NOT_SURE",
+    paymentPreference: "DIRECT_BILLING",
+    billingOrganization: "Release Test Hospital",
+    billingAccountNumber: "ACC-2026",
+    billingContactPerson: "Release Billing",
+    purchaseOrderReference: "PO-2026",
+  }));
+  expect(response.status()).toBe(201);
+  const { tripId } = await response.json();
+  const trip = await prisma.trip.findUniqueOrThrow({ where: { id: tripId } });
+  expect(trip.patientOver250).toBe("YES");
+  expect(trip.passengerWeightValue?.toString()).toBe("125");
+  expect(trip.passengerWeightUnit).toBe("KG");
+  expect(trip.passengerWeightKg).toBe(125);
+  expect(trip.escortCount).toBe(4);
+  expect(trip.specialAssistance).toBe("STAIR_CHAIR");
+  expect(trip.stairChairWeightEligible).toBe("NO");
+  expect(trip.dnrDocumentationConfirmed).toBe(true);
+  expect(trip.belongingsRequirement).toBe("NOT_SURE");
+  expect(trip.paymentPreference).toBe("DIRECT_BILLING");
+  expect(trip.billingOrganization).toBe("Release Test Hospital");
+  expect(trip.billingAccountNumber).toBe("ACC-2026");
+  expect(trip.billingContactPerson).toBe("Release Billing");
+  expect(trip.purchaseOrderReference).toBe("PO-2026");
+
+  const staleBranchResponse = await postJson(request, "/api/bookings", bookingBody({
+    guestEmail: fixture.customer.email,
+    patientOver250: "NO",
+    passengerWeightValue: 175,
+    passengerWeightUnit: "LB",
+    specialAssistance: "NO",
+    paymentPreference: "CARD",
+    invoiceRecipient: "OTHER",
+    invoiceName: "Stale Invoice",
+    invoiceEmail: "stale-invoice@example.com",
+    billingOrganization: "Stale Billing",
+    insuranceCompany: "Stale Insurance",
+    opgtClientInformation: "Stale OPGT",
+    otherPaymentDetails: "Stale Other",
+  }));
+  expect(staleBranchResponse.status()).toBe(201);
+  const staleBranchResult = await staleBranchResponse.json();
+  const normalizedTrip = await prisma.trip.findUniqueOrThrow({ where: { id: staleBranchResult.tripId } });
+  expect(normalizedTrip.passengerWeightValue).toBeNull();
+  expect(normalizedTrip.passengerWeightUnit).toBeNull();
+  expect(normalizedTrip.passengerWeightKg).toBeNull();
+  expect(normalizedTrip.invoiceRecipient).toBeNull();
+  expect(normalizedTrip.invoiceName).toBeNull();
+  expect(normalizedTrip.invoiceEmail).toBeNull();
+  expect(normalizedTrip.billingOrganization).toBeNull();
+  expect(normalizedTrip.insuranceCompany).toBeNull();
+  expect(normalizedTrip.opgtClientInformation).toBeNull();
+  expect(normalizedTrip.otherPaymentDetails).toBeNull();
 });
 
 test("admin fleet, staff, account controls, pricing form, and driver verification work", async ({ page }) => {
@@ -765,12 +1008,23 @@ test("landing, booking, login, and every portal remain usable at a phone viewpor
   const errors: string[] = [];
   mobile.on("pageerror", (error) => errors.push(error.message));
 
-  for (const route of ["/", "/book", "/login"]) {
+  for (const route of ["/", "/book", "/careers", "/login", "/register"]) {
     await mobile.goto(route);
     await expect(mobile.locator("h1").first()).toBeVisible();
+    await expect(mobile.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" })).toBeVisible();
     const overflow = await mobile.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${route} horizontal overflow`).toBeLessThanOrEqual(2);
   }
+
+  await mobile.goto("/book");
+  await mobile.getByLabel("Does the patient weigh more than 250 lb").selectOption("YES");
+  await mobile.getByLabel("Will anyone be accompanying the patient?").selectOption("3_PLUS");
+  await mobile.getByLabel("One-way or return trip?").selectOption("WAIT_AND_RETURN");
+  await mobile.getByLabel("Does the patient require oxygen during transportation?").selectOption("YES");
+  await mobile.getByLabel("Payment method").selectOption("INVOICE");
+  await mobile.getByLabel("Will the patient have belongings?").selectOption("YES");
+  const conditionalOverflow = await mobile.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(conditionalOverflow, "mobile conditional booking fields horizontal overflow").toBeLessThanOrEqual(2);
 
   for (const account of [
     { email: fixture.admin.email, home: /\/admin/ },

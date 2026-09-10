@@ -69,9 +69,22 @@ enum BookingPaymentPreference {
   E_TRANSFER
   DIRECT_DEPOSIT
   INVOICE
+  DIRECT_BILLING
   INSURANCE
   OPGT
   OTHER
+}
+
+enum WeightUnit {
+  LB
+  KG
+}
+
+enum SpecialAssistanceType {
+  NO
+  STAIR_CHAIR
+  BARIATRIC
+  NOT_SURE
 }
 
 enum CareRequirementAnswer {
@@ -318,18 +331,18 @@ model Trip {
   bookedById String?
   bookedBy   User?   @relation("BookedByUser", fields: [bookedById], references: [id])
 
-  pickupAddress     String
-  pickupLat         Float?
-  pickupLng         Float?
-  pickupFacilityName String?
-  pickupDepartment  String?
-  pickupRoom        String?
-  dropoffAddress    String
-  dropoffLat        Float?
-  dropoffLng        Float?
+  pickupAddress       String
+  pickupLat           Float?
+  pickupLng           Float?
+  pickupFacilityName  String?
+  pickupDepartment    String?
+  pickupRoom          String?
+  dropoffAddress      String
+  dropoffLat          Float?
+  dropoffLng          Float?
   dropoffFacilityName String?
-  dropoffDepartment String?
-  dropoffRoom       String?
+  dropoffDepartment   String?
+  dropoffRoom         String?
 
   scheduledAt          DateTime
   pickupTimePreference PickupTimePreference @default(SPECIFIC)
@@ -339,7 +352,12 @@ model Trip {
 
   mobilityType              MobilityType              @default(AMBULATORY)
   passengerWeightKg         Int?
+  patientOver250            CareRequirementAnswer     @default(NOT_SURE)
+  passengerWeightValue      Decimal?                  @db.Decimal(7, 2)
+  passengerWeightUnit       WeightUnit?
   isBariatric               Boolean                   @default(false)
+  specialAssistance         SpecialAssistanceType     @default(NO)
+  stairChairWeightEligible  CareRequirementAnswer?
   isOutOfCity               Boolean                   @default(false) // false = within London, ON; true = outside London
   requiresOxygen            Boolean                   @default(false)
   oxygenRequirement         CareRequirementAnswer     @default(NO)
@@ -349,10 +367,26 @@ model Trip {
   isolationDetails          String?
   hasDnr                    Boolean                   @default(false)
   dnrRequirement            CareRequirementAnswer     @default(NO)
+  dnrDocumentationConfirmed Boolean                   @default(false)
   hasBelongings             Boolean                   @default(false)
+  belongingsRequirement     CareRequirementAnswer     @default(NO)
   belongingsDescription     String?                   @db.Text
   escortCount               Int                       @default(0)
   paymentPreference         BookingPaymentPreference?
+  invoiceRecipient          String?
+  invoiceName               String?
+  invoiceEmail              String?
+  billingAddress            String?                   @db.Text
+  billingOrganization       String?
+  billingAccountNumber      String?
+  billingContactPerson      String?
+  purchaseOrderReference    String?
+  insuranceCompany          String?
+  insuranceClaimNumber      String?
+  insurancePolicyNumber     String?
+  opgtClientInformation     String?                   @db.Text
+  opgtContactPerson         String?
+  otherPaymentDetails       String?                   @db.Text
   medicalDocumentsAvailable Boolean                   @default(false)
   extraAttendant            Boolean                   @default(false)
   extraAttendantHours       Decimal?                  @db.Decimal(5, 2)

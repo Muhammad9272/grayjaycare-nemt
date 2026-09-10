@@ -405,77 +405,10 @@
   white-space: nowrap;
 }
 
-.partners {
-  display: flex;
-  height: 240px;
-  align-items: center;
-  overflow: hidden;
-  background: #fff;
-}
-
-.partnerTrack {
-  display: flex;
-  width: min(1200px, calc(100% - 80px));
-  align-items: center;
-  justify-content: space-between;
-  gap: 48px;
-  margin: 0 auto;
-}
-
-.partnerLogo {
-  display: flex;
-  width: 150px;
-  height: 110px;
-  flex: 0 0 150px;
-  align-items: center;
-  justify-content: center;
-}
-
-.partnerLogo img {
-  width: auto;
-  max-width: 145px;
-  height: auto;
-  max-height: 90px;
-  object-fit: contain;
-}
-
-.meadowLogo {
-  position: relative;
-  display: flex;
-  color: #8c4b39;
-  font-family: Georgia, serif;
-  text-align: center;
-  text-transform: uppercase;
-  flex-direction: column;
-}
-
-.meadowLogo::before {
-  width: 70px;
-  height: 12px;
-  border-top: 2px solid #ad8265;
-  border-bottom: 1px solid #ad8265;
-  content: "";
-  margin: 0 auto 4px;
-  transform: skewX(-28deg);
-}
-
-.meadowLogo b {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.meadowLogo small {
-  margin-top: 2px;
-  color: #9a7f69;
-  font-size: 8px;
-  letter-spacing: 2px;
-}
-
 .about {
-  min-height: 1040px;
-  padding: 100px 0 80px;
-  background: #fff;
+  min-height: 960px;
+  padding: 112px 0 88px;
+  background: linear-gradient(180deg, #fff 0%, #fdf9ff 100%);
 }
 
 .aboutInner {
@@ -497,8 +430,84 @@
 .phoneMockup {
   position: relative;
   z-index: 4;
-  width: 421px;
+  width: 330px;
+  height: 630px;
+  overflow: hidden;
+  border: 12px solid #17121a;
+  border-radius: 52px;
+  background: #fff;
+  padding: 17px 14px 14px;
+  box-shadow: 0 28px 70px rgba(66, 20, 93, 0.24);
+  transform: rotate(-4deg);
+}
+
+.phoneSpeaker {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 50%;
+  width: 92px;
+  height: 21px;
+  border-radius: 0 0 14px 14px;
+  background: #17121a;
+  transform: translateX(-50%);
+}
+
+.phoneScreen {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 34px;
+  background: linear-gradient(155deg, #fff 10%, #f7e6ff 100%);
+  padding: 52px 27px 32px;
+  text-align: center;
+  flex-direction: column;
+}
+
+.phoneScreen img {
+  width: 210px;
   height: auto;
+  margin-bottom: 64px;
+  object-fit: contain;
+}
+
+.phoneScreen p {
+  margin: 0 0 18px;
+  color: #30272f;
+  font-family: var(--font-landing-display), serif;
+  font-size: 34px;
+  line-height: 1.04;
+}
+
+.phoneScreen > span {
+  max-width: 235px;
+  color: var(--body);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.phoneScreen a {
+  display: inline-flex;
+  min-width: 166px;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 28px;
+  border-radius: 4px;
+  background: var(--purple);
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.phoneScreen small {
+  margin-top: auto;
+  color: #765d7d;
+  font-size: 11px;
+  letter-spacing: 0.3px;
 }
 
 .aboutLeaves {
@@ -557,7 +566,7 @@
 
 .aboutCopy h2,
 .faqIntro h2,
-.contactIntro h2,
+.contactDescription,
 .servicesIntro h2,
 .testimonials h2 {
   font-family: var(--font-landing-display), serif;
@@ -929,16 +938,65 @@
   line-height: 1.25;
 }
 
-.reviewGrid {
-  display: grid;
-  width: min(1060px, calc(100% - 80px));
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+.reviewCarousel {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.reviewMotionButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(75, 19, 126, 0.22);
+  padding: 8px 15px;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reviewMotionButton:hover,
+.reviewMotionButton:focus-visible {
+  background: rgba(75, 19, 126, 0.45);
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.reviewViewport {
+  width: 100%;
+  overflow: hidden;
   margin: 30px auto 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+
+.reviewTrack {
+  display: flex;
+  width: max-content;
+  gap: 14px;
+  padding-inline: 7px;
+  animation: review-marquee 34s linear infinite;
+}
+
+.reviewViewport:hover .reviewTrack,
+.reviewViewport:focus-within .reviewTrack {
+  animation-play-state: paused;
+}
+
+.reviewTrackPaused {
+  animation-play-state: paused;
 }
 
 .reviewCard {
-  height: 178px;
+  width: 300px;
+  height: 188px;
+  flex: 0 0 300px;
   overflow: hidden;
   border-radius: 8px;
   background: #fff;
@@ -1004,9 +1062,10 @@
   -webkit-line-clamp: 6;
 }
 
-.reviewCard > small {
-  color: #777;
-  font-size: 8px;
+@keyframes review-marquee {
+  to {
+    transform: translateX(calc(-50% - 7px));
+  }
 }
 
 .googleReviewsLink {
@@ -1032,7 +1091,7 @@
   padding: 40px 0 30px;
 }
 
-.contactIntro h2 {
+.contactDescription {
   margin: 12px 0 0;
   font-size: 48px;
   line-height: 1.2;
@@ -1189,7 +1248,7 @@
   .aboutCopy h2,
   .servicesIntro h2,
   .faqIntro h2,
-  .contactIntro h2 {
+  .contactDescription {
     font-size: 40px;
   }
 
@@ -1458,24 +1517,6 @@
     font-size: clamp(35px, 10.4vw, 42px);
   }
 
-  .partners {
-    height: 240px;
-  }
-
-  .partnerTrack {
-    width: 900px;
-    max-width: none;
-    flex: 0 0 900px;
-    justify-content: flex-start;
-    gap: 40px;
-    margin-left: -170px;
-  }
-
-  .partnerLogo {
-    width: 145px;
-    flex-basis: 145px;
-  }
-
   .about {
     min-height: 0;
     padding: 60px 20px 50px;
@@ -1492,7 +1533,47 @@
   }
 
   .phoneMockup {
-    width: 260px;
+    width: 230px;
+    height: 430px;
+    border-width: 8px;
+    border-radius: 38px;
+    padding: 12px 9px 9px;
+  }
+
+  .phoneSpeaker {
+    top: 7px;
+    width: 64px;
+    height: 15px;
+  }
+
+  .phoneScreen {
+    border-radius: 25px;
+    padding: 38px 18px 22px;
+  }
+
+  .phoneScreen img {
+    width: 154px;
+    margin-bottom: 36px;
+  }
+
+  .phoneScreen p {
+    margin-bottom: 12px;
+    font-size: 25px;
+  }
+
+  .phoneScreen > span {
+    font-size: 11px;
+  }
+
+  .phoneScreen a {
+    min-width: 132px;
+    min-height: 40px;
+    margin-top: 18px;
+    font-size: 10px;
+  }
+
+  .phoneScreen small {
+    font-size: 8px;
   }
 
   .aboutLeaves {
@@ -1702,17 +1783,9 @@
     line-height: 1.2;
   }
 
-  .reviewGrid {
-    display: flex;
-    width: 100%;
-    gap: 12px;
-    overflow-x: auto;
-    padding: 0 20px 4px;
-    scrollbar-width: none;
-  }
-
-  .reviewGrid::-webkit-scrollbar {
-    display: none;
+  .reviewViewport {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
   }
 
   .reviewCard {
@@ -1732,7 +1805,7 @@
     text-align: center;
   }
 
-  .contactIntro h2 {
+  .contactDescription {
     margin-top: 18px;
     font-size: 29px;
     line-height: 1.05;
@@ -1791,5 +1864,19 @@
     min-height: 52px;
     padding: 10px 20px;
     font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviewTrack {
+    width: auto;
+    overflow-x: auto;
+    padding: 0 20px 8px;
+    animation: none;
+    scrollbar-width: thin;
+  }
+
+  .reviewTrack > :nth-child(n + 5) {
+    display: none;
   }
 }

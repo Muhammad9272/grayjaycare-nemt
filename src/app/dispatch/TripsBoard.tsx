@@ -35,6 +35,9 @@ type Trip = {
   isolationRequirement: string;
   isolationDetails: string | null;
   dnrRequirement: string;
+  specialAssistance: string;
+  patientOver250: string;
+  dnrDocumentationConfirmed: boolean;
   hasBelongings: boolean;
   belongingsDescription: string | null;
   driverId: string | null;
@@ -183,7 +186,7 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
             </p>
           </div>
 
-          {(trip.requiresIsolation || trip.hasDnr || trip.requiresOxygen || trip.oxygenRequirement === "NOT_SURE" || trip.isolationRequirement === "NOT_SURE" || trip.dnrRequirement === "NOT_SURE" || trip.hasBelongings || trip.escortCount > 0) && (
+          {(trip.requiresIsolation || trip.hasDnr || trip.requiresOxygen || trip.oxygenRequirement === "NOT_SURE" || trip.isolationRequirement === "NOT_SURE" || trip.dnrRequirement === "NOT_SURE" || trip.hasBelongings || trip.escortCount > 0 || trip.specialAssistance !== "NO" || trip.patientOver250 !== "NO") && (
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
               {trip.requiresIsolation && <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">Isolation</span>}
               {trip.isolationRequirement === "NOT_SURE" && <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">Isolation: confirm</span>}
@@ -193,6 +196,9 @@ export default function TripsBoard({ trips, drivers, vehicles }: { trips: Trip[]
               {trip.oxygenRequirement === "NOT_SURE" && <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-800">Oxygen: confirm</span>}
               {trip.hasBelongings && <span className="rounded-full bg-muted px-2 py-1">Belongings</span>}
               {trip.escortCount > 0 && <span className="rounded-full bg-muted px-2 py-1">{trip.escortCount} escort{trip.escortCount === 1 ? "" : "s"}</span>}
+              {trip.specialAssistance !== "NO" && <span className="rounded-full bg-purple-100 px-2 py-1 text-purple-800">Assistance: {trip.specialAssistance.toLowerCase().replaceAll("_", " ")}</span>}
+              {trip.patientOver250 !== "NO" && <span className="rounded-full bg-orange-100 px-2 py-1 text-orange-800">Over 250 lb: {trip.patientOver250 === "YES" ? "yes" : "confirm"}</span>}
+              {trip.hasDnr && !trip.dnrDocumentationConfirmed && <span className="rounded-full bg-red-100 px-2 py-1 text-red-800">DNR documents: confirm</span>}
             </div>
           )}
 
