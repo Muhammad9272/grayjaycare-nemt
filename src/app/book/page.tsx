@@ -583,16 +583,16 @@ function BookingPageContent() {
                   <input className={styles.input} value={medicalRecordNumber} onChange={(event) => setMedicalRecordNumber(event.target.value)} autoComplete="off" />
                   <small>For hospital and facility bookings only.</small>
                 </label>
-                <label className={styles.field}>
+                <label className={`${styles.field} ${styles.requiredField}`}>
                   <span>Does the patient weigh more than 250 lb (113 kg)?</span>
-                  <select className={styles.input} value={patientOver250} onChange={(event) => setPatientOver250(event.target.value as RequirementAnswer)}>
+                  <select className={styles.input} value={patientOver250} onChange={(event) => setPatientOver250(event.target.value as RequirementAnswer)} required>
                     <option value="NO">No</option><option value="YES">Yes</option><option value="NOT_SURE">Not sure</option>
                   </select>
                 </label>
                 {patientOver250 === "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} error={fieldErrors.passengerWeight} styles={styles} />}
-                <label className={styles.field}>
+                <label className={`${styles.field} ${styles.requiredField}`}>
                   <span>Will anyone be accompanying the patient?</span>
-                  <select className={styles.input} value={accompanimentChoice} onChange={(event) => { const choice = event.target.value; setAccompanimentChoice(choice); setEscortCount(choice === "3_PLUS" ? "3" : choice); }}>
+                  <select className={styles.input} value={accompanimentChoice} onChange={(event) => { const choice = event.target.value; setAccompanimentChoice(choice); setEscortCount(choice === "3_PLUS" ? "3" : choice); }} required>
                     <option value="0">No</option><option value="1">Yes — 1 person</option><option value="2">Yes — 2 people</option><option value="3_PLUS">Yes — 3 or more people</option>
                   </select>
                 </label>
@@ -613,7 +613,7 @@ function BookingPageContent() {
                 <label className={styles.field}><span>Drop-off room <small>(optional)</small></span><input className={styles.input} value={dropoffRoom} onChange={(event) => setDropoffRoom(event.target.value)} placeholder="e.g. Room 310" /></label>
                 <div className={`${styles.field} ${styles.fullField} ${fieldErrors.scheduledAt ? styles.invalidField : ""}`} data-error-field="scheduledAt"><span>Pickup date and time</span><LongDateInput includeTime min={minimumPickupTime} ariaLabel="Pickup date and time" controlClassName={styles.input} value={scheduledAt} onChange={setScheduledAt} ariaInvalid={Boolean(fieldErrors.scheduledAt)} ariaDescribedBy={fieldErrors.scheduledAt ? "scheduledAt-error" : undefined} required /><FieldError field="scheduledAt" errors={fieldErrors} /></div>
                 <div className={`${styles.roundTripBox} ${styles.fullField}`}>
-                  <label className={styles.field}><span>One-way or return trip?</span><select className={styles.input} value={returnTripType} onChange={(event) => setReturnTripType(event.target.value as ReturnTripType)}><option value="ONE_WAY">One-way trip</option><option value="WAIT_AND_RETURN">Wait with the patient and return</option><option value="SCHEDULED_RETURN">Drop off and return later</option></select></label>
+                  <label className={`${styles.field} ${styles.requiredField}`}><span>One-way or return trip?</span><select className={styles.input} value={returnTripType} onChange={(event) => setReturnTripType(event.target.value as ReturnTripType)} required><option value="ONE_WAY">One-way trip</option><option value="WAIT_AND_RETURN">Wait with the patient and return</option><option value="SCHEDULED_RETURN">Drop off and return later</option></select></label>
                   {returnTripType === "SCHEDULED_RETURN" && <div className={`${styles.field} ${fieldErrors.returnScheduledAt ? styles.invalidField : ""}`} data-error-field="returnScheduledAt"><span>Estimated return pickup date and time</span><LongDateInput includeTime min={scheduledAt || minimumPickupTime} ariaLabel="Return pickup date and time" controlClassName={styles.input} value={returnScheduledAt} onChange={setReturnScheduledAt} ariaInvalid={Boolean(fieldErrors.returnScheduledAt)} ariaDescribedBy={fieldErrors.returnScheduledAt ? "returnScheduledAt-error" : undefined} required /><FieldError field="returnScheduledAt" errors={fieldErrors} /></div>}
                   {returnTripType === "WAIT_AND_RETURN" && <div className={`${styles.field} ${styles.fullField} ${fieldErrors.waitMinutes ? styles.invalidField : ""}`} data-error-field="waitMinutes"><span>What is the approximate waiting time before returning with the patient?</span><div className={styles.formGrid}><label className={styles.field}><span>Hours</span><select className={styles.input} value={waitHours} onChange={(event) => setWaitHours(event.target.value)}>{Array.from({ length: 13 }, (_, hour) => <option key={hour} value={hour}>{hour}</option>)}</select></label><label className={styles.field}><span>Minutes</span><select className={styles.input} value={waitMinuteRemainder} onChange={(event) => setWaitMinuteRemainder(event.target.value)}>{[0, 15, 30, 45].map((minute) => <option key={minute} value={minute}>{String(minute).padStart(2, "0")}</option>)}</select></label></div><small>Waiting time charges may apply based on the actual waiting time.</small><FieldError field="waitMinutes" errors={fieldErrors} /></div>}
                 </div>
@@ -627,14 +627,14 @@ function BookingPageContent() {
 
             <section className={styles.sectionCard}>
               <SectionHeader number="04" title="Transportation type" copy="Choose the vehicle and assistance best suited to the passenger." />
-              <fieldset className={styles.field}><legend>Transportation type</legend><div className={styles.serviceGrid}>{SERVICE_OPTIONS.map((option) => <label key={option.value} className={`${styles.serviceChoice} ${mobilityType === option.value ? styles.choiceActive : ""}`}><input type="radio" name="mobilityType" value={option.value} checked={mobilityType === option.value} onChange={() => { setMobilityType(option.value); if (option.value === "AMBULATORY" && specialAssistance === "BARIATRIC") setSpecialAssistance("NO"); }} /><span className={styles.radioMark} /><strong>{option.title}</strong><small>{option.copy}</small></label>)}</div></fieldset>
+              <fieldset className={`${styles.field} ${styles.requiredField}`}><legend>Transportation type</legend><div className={styles.serviceGrid}>{SERVICE_OPTIONS.map((option) => <label key={option.value} className={`${styles.serviceChoice} ${mobilityType === option.value ? styles.choiceActive : ""}`}><input type="radio" name="mobilityType" value={option.value} checked={mobilityType === option.value} onChange={() => { setMobilityType(option.value); if (option.value === "AMBULATORY" && specialAssistance === "BARIATRIC") setSpecialAssistance("NO"); }} required /><span className={styles.radioMark} /><strong>{option.title}</strong><small>{option.copy}</small></label>)}</div></fieldset>
               {bookingChannel !== "PUBLIC" && <label className={`${styles.optionCard} ${extraAttendant ? styles.optionActive : ""}`}><input type="checkbox" checked={extraAttendant} onChange={(event) => setExtraAttendant(event.target.checked)} /><OptionIcon type="person" /><span><strong>Extra attendant</strong><small>Internal dispatch option</small></span></label>}
             </section>
 
             <section className={styles.sectionCard}>
               <SectionHeader number="05" title="Passenger requirements" copy="These answers help the care team prepare safely." />
               <div className={styles.formGrid}>
-                <label className={styles.field}><span>Does the patient require special assistance?</span><select className={styles.input} value={specialAssistance} onChange={(event) => setSpecialAssistance(event.target.value as SpecialAssistance)}><option value="NO">No</option><option value="STAIR_CHAIR">Yes — Stair-chair assistance</option><option value="BARIATRIC" disabled={mobilityType === "AMBULATORY"}>Yes — Bariatric support</option><option value="NOT_SURE">Not sure</option></select>{mobilityType !== "AMBULATORY" && <small>Bariatric support is available for wheelchair and stretcher transportation.</small>}</label>
+                <label className={`${styles.field} ${styles.requiredField}`}><span>Does the patient require special assistance?</span><select className={styles.input} value={specialAssistance} onChange={(event) => setSpecialAssistance(event.target.value as SpecialAssistance)} required><option value="NO">No</option><option value="STAIR_CHAIR">Yes — Stair-chair assistance</option><option value="BARIATRIC" disabled={mobilityType === "AMBULATORY"}>Yes — Bariatric support</option><option value="NOT_SURE">Not sure</option></select>{mobilityType !== "AMBULATORY" && <small>Bariatric support is available for wheelchair and stretcher transportation.</small>}</label>
                 {specialAssistance === "STAIR_CHAIR" && <div className={styles.field}><RequirementSelect label="Does the patient weigh 250 lb (113 kg) or less?" value={stairChairWeightEligible} onChange={setStairChairWeightEligible} styles={styles} /><small>Stair-chair assistance is available for patients up to 250 lb (113 kg), subject to safe operating conditions.</small></div>}
                 {specialAssistance === "BARIATRIC" && patientOver250 !== "YES" && <WeightInput value={passengerWeight} unit={passengerWeightUnit} onValue={setPassengerWeight} onUnit={setPassengerWeightUnit} error={fieldErrors.passengerWeight} styles={styles} />}
                 <RequirementSelect label="Does the patient require oxygen during transportation?" value={oxygenRequirement} onChange={setOxygenRequirement} styles={styles} />
@@ -801,9 +801,9 @@ function FieldError({ field, errors }: { field: BookingFieldKey; errors: Booking
 
 function RequirementSelect({ label, value, onChange, styles: fieldStyles }: { label: string; value: RequirementAnswer; onChange: (value: RequirementAnswer) => void; styles: typeof styles }) {
   return (
-    <label className={fieldStyles.field}>
+    <label className={`${fieldStyles.field} ${fieldStyles.requiredField}`}>
       <span>{label}</span>
-      <select className={fieldStyles.input} value={value} onChange={(event) => onChange(event.target.value as RequirementAnswer)}>
+      <select className={fieldStyles.input} value={value} onChange={(event) => onChange(event.target.value as RequirementAnswer)} required>
         <option value="NO">No</option>
         <option value="YES">Yes</option>
         <option value="NOT_SURE">Not sure</option>

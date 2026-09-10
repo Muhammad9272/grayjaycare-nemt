@@ -72,7 +72,7 @@ export const bookingSchema = quoteSchema
     opgtClientInformation: z.string().trim().max(500).optional(),
     opgtContactPerson: z.string().trim().max(160).optional(),
     otherPaymentDetails: z.string().trim().max(1000).optional(),
-    patientOver250: careRequirementAnswerEnum.default("NOT_SURE"),
+    patientOver250: careRequirementAnswerEnum.default("NO"),
     passengerWeightValue: z.coerce.number().positive().max(2200).optional(),
     passengerWeightUnit: weightUnitEnum.optional(),
     passengerWeightKg: z.coerce.number().int().positive().max(1000).optional(),

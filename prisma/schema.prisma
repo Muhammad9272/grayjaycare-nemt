@@ -352,7 +352,7 @@ model Trip {
 
   mobilityType              MobilityType              @default(AMBULATORY)
   passengerWeightKg         Int?
-  patientOver250            CareRequirementAnswer     @default(NOT_SURE)
+  patientOver250            CareRequirementAnswer     @default(NO)
   passengerWeightValue      Decimal?                  @db.Decimal(7, 2)
   passengerWeightUnit       WeightUnit?
   isBariatric               Boolean                   @default(false)

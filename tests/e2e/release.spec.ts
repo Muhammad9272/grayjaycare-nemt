@@ -429,6 +429,20 @@ test("booking form shows an error below every missing field and submits from the
   await expect(page.getByLabel("Contact person's full name")).toHaveAttribute("aria-invalid", "true");
   const requiredLabel = page.getByText("Contact person's full name", { exact: true });
   expect(await requiredLabel.evaluate((element) => getComputedStyle(element, "::after").content)).toContain("*");
+  for (const label of [
+    "Does the patient weigh more than 250 lb (113 kg)?",
+    "One-way or return trip?",
+    "Does the patient require special assistance?",
+    "Does the patient require oxygen during transportation?",
+    "Are isolation precautions required?",
+    "Does the patient have a DNR (Do Not Resuscitate) paperwork?",
+    "Will the patient have belongings?",
+  ]) {
+    const question = page.getByText(label, { exact: true });
+    expect(await question.evaluate((element) => getComputedStyle(element, "::after").content), `${label} required marker`).toContain("*");
+  }
+  const transportationLegend = page.getByText("Transportation type", { exact: true }).last();
+  expect(await transportationLegend.evaluate((element) => getComputedStyle(element, "::after").content)).toContain("*");
 
   const finalSection = page.getByRole("heading", { name: "Belongings and notes" }).locator("xpath=ancestor::section");
   const submitArea = submitButton.locator("xpath=parent::div");

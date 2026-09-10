@@ -48,6 +48,11 @@ describe("revised booking validation", () => {
     assert.equal(bookingSchema.safeParse({ ...baseBooking(), distanceKm: undefined }).success, true);
   });
 
+  it("defaults an omitted over-250 answer to No across API clients", () => {
+    const parsed = bookingSchema.parse(baseBooking());
+    assert.equal(parsed.patientOver250, "NO");
+  });
+
   it("requires an approximate weight and unit when the patient is over 250 lb", () => {
     const base = { ...baseBooking(), patientOver250: "YES" };
     assert.equal(issuePaths(base).includes("passengerWeightValue"), true);

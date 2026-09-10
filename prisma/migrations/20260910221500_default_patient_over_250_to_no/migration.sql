@@ -1,0 +1,2 @@
+ALTER TABLE `Trip`
+  MODIFY `patientOver250` ENUM('NO', 'YES', 'NOT_SURE') NOT NULL DEFAULT 'NO';

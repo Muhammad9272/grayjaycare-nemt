@@ -71,6 +71,8 @@
 .field span small { color: #8d8192; font-weight: 400; }
 .bookingLayout [data-error-field] > span:first-child::after { color: #c5283d; content: " *"; font-weight: 850; }
 .bookingLayout [data-error-field="dnrDocumentationConfirmed"] .optionCard strong::after { color: #c5283d; content: " *"; font-weight: 850; }
+.requiredField > span:first-child::after,
+.requiredField > legend::after { color: #c5283d; content: " *"; font-weight: 850; }
 .input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #e4d9e9; border-radius: 11px; color: #302639; background: #fffefe; font: inherit; font-size: 14px; outline: none; box-shadow: 0 1px 2px rgba(57, 25, 72, 0.025); }
 .input:focus { border-color: #a645e8; box-shadow: 0 0 0 3px rgba(146, 43, 234, 0.1); }
 .input::placeholder { color: #aaa0ae; }
