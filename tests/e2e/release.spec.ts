@@ -356,7 +356,9 @@ test("revised public content, reviews, contact details, and call actions are pre
   await expect(page.getByText("Gray Jay Care was founded by two brothers with years of experience in patient transportation.", { exact: false })).toBeVisible();
   await expect(page.getByText("up to five years of experience", { exact: false })).toHaveCount(0);
   const serviceAreaMap = page.getByTitle("Gray Jay Care service area across Southwestern Ontario");
-  await expect(serviceAreaMap).toHaveAttribute("src", /-83\.3000%2C41\.6000%2C-79\.0000%2C44\.4000/);
+  await expect(serviceAreaMap).toHaveAttribute("src", /-83\.2500%2C41\.6500%2C-79\.0000%2C44\.5000/);
+  await expect(serviceAreaMap).not.toHaveAttribute("src", /marker=/);
+  await expect(page.getByText("Southwestern Ontario Service Area", { exact: true })).toBeVisible();
   await page.getByText("Can pickup or arrival times be delayed?", { exact: true }).click();
   await expect(page.getByText("We do our best to stay on schedule. However, traffic, weather, road conditions, facility delays, or unforeseen circumstances may occasionally affect pickup or arrival times. If a delay occurs, we will keep you informed and provide an update as soon as possible.", { exact: true })).toBeVisible();
   await expect(page.getByText("Whether you have questions about our services or need assistance with booking your transportation, our team is here to help. Please reach out using the contact information below.", { exact: true })).toBeVisible();

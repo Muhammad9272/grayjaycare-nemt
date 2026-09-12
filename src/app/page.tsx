@@ -366,9 +366,10 @@ export default function Home() {
               </div>
             </div>
             <div className={styles.mapWrap}>
+              <span className={styles.mapCaption}>Southwestern Ontario Service Area</span>
               <iframe
                 title="Gray Jay Care service area across Southwestern Ontario"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=-83.3000%2C41.6000%2C-79.0000%2C44.4000&layer=mapnik&marker=42.9849%2C-81.2453"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-83.2500%2C41.6500%2C-79.0000%2C44.5000&layer=mapnik"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
