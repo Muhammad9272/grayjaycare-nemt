@@ -74,7 +74,7 @@
   color: var(--purple);
 }
 
-.desktopNav .headerLogin {
+.desktopNav > a.headerAccount {
   display: grid;
   width: 42px;
   height: 42px;
@@ -85,11 +85,17 @@
   color: var(--purple);
 }
 
-.headerLogin svg {
+.headerAccount svg {
+  display: block;
   width: 21px;
   height: 21px;
   stroke: currentColor;
   stroke-width: 1.8;
+}
+
+.headerSignIn {
+  color: var(--purple);
+  font-weight: 600;
 }
 
 .headerButton {

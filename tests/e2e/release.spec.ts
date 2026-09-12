@@ -345,11 +345,14 @@ test("customer and driver registration validate duplicates and approval", async 
 });
 
 test("revised public content, reviews, contact details, and call actions are present", async ({ page }) => {
+  await page.route("**/api/auth/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   await page.goto("/");
   const globalCallAction = page.getByRole("link", { name: "Call Gray Jay Care at (519) 933-5090" });
   await expect(globalCallAction).toHaveAttribute("href", "tel:+15199335090");
   await expect(globalCallAction).toHaveText("Call Us");
-  await expect(page.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+  const signInLink = page.getByRole("link", { name: "Sign In", exact: true });
+  await expect(signInLink).toHaveAttribute("href", "/login");
+  await expect(signInLink).toHaveText("Sign In");
   await expect(page.getByText("Gray Jay Care was founded by two brothers with years of experience in patient transportation.", { exact: false })).toBeVisible();
   await expect(page.getByText("up to five years of experience", { exact: false })).toHaveCount(0);
   const serviceAreaMap = page.getByTitle("Gray Jay Care service area across Southwestern Ontario");
@@ -403,6 +406,27 @@ test("revised public content, reviews, contact details, and call actions are pre
     await expect(callAction).toHaveAttribute("href", "tel:+15199335090");
     await expect(callAction).toHaveText("Call Us");
   }
+
+  await page.unrouteAll({ behavior: "wait" });
+  await page.route("**/api/auth/session", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ user: { id: "header-state-test", role: "CUSTOMER" } }),
+  }));
+  await page.goto("/");
+  const accountLink = page.getByRole("link", { name: "Open account dashboard" });
+  await expect(accountLink).toHaveAttribute("href", "/dashboard");
+  await expect(page.getByRole("link", { name: "Sign In", exact: true })).toHaveCount(0);
+  const iconOffset = await accountLink.evaluate((element) => {
+    const link = element.getBoundingClientRect();
+    const icon = element.querySelector("svg")!.getBoundingClientRect();
+    return {
+      x: Math.abs((link.left + link.width / 2) - (icon.left + icon.width / 2)),
+      y: Math.abs((link.top + link.height / 2) - (icon.top + icon.height / 2)),
+    };
+  });
+  expect(iconOffset.x).toBeLessThanOrEqual(1);
+  expect(iconOffset.y).toBeLessThanOrEqual(1);
 });
 
 test("booking form shows an error below every missing field and submits from the bottom", async ({ page }) => {

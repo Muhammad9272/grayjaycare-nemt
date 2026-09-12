@@ -4,6 +4,7 @@ import { Marcellus, Source_Sans_3 } from "next/font/google";
 import styles from "./landing.module.css";
 import TidioChat from "@/components/TidioChat";
 import ReviewCarousel from "@/components/ReviewCarousel";
+import LandingHeader from "@/components/LandingHeader";
 
 const marcellus = Marcellus({
   subsets: ["latin"],
@@ -156,14 +157,6 @@ const TESTIMONIALS = [
     date: "19 August 2025",
     quote: "Very reasonable rates. Clean and modern vehicle. Polite, kind and sympathetic driver. Helped my mom relax during a stressful 2 hour drive. Outstanding service all around. Highly recommend!!!",
   },
-];
-
-const NAV_LINKS = [
-  { href: "#home", label: "Home" },
-  { href: "#about-us", label: "About US" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#contact", label: "Contact Us" },
-  { href: "/careers", label: "Careers" },
 ];
 
 export default function Home() {
@@ -389,33 +382,6 @@ export default function Home() {
       </footer>
       <TidioChat />
     </div>
-  );
-}
-
-function LandingHeader() {
-  return (
-    <header className={styles.header}>
-      <div className={styles.headerInner}>
-        <Link href="#home" className={styles.brand} aria-label="Gray Jay Care home">
-          <Image src="/site/logo-wordmark.png" alt="Gray Jay Care" width={1648} height={445} priority />
-        </Link>
-        <nav className={styles.desktopNav} aria-label="Primary navigation">
-          {NAV_LINKS.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
-          <Link className={styles.headerLogin} href="/login" aria-label="Sign in">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" /></svg>
-          </Link>
-          <Link className={styles.headerButton} href="/book">Book Now</Link>
-        </nav>
-        <details className={styles.mobileMenu}>
-          <summary aria-label="Open navigation menu"><span /><span /></summary>
-          <nav aria-label="Mobile navigation">
-            {NAV_LINKS.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
-            <Link href="/login">Sign In</Link>
-            <Link href="/book">Book Now</Link>
-          </nav>
-        </details>
-      </div>
-    </header>
   );
 }
 
